@@ -642,6 +642,9 @@ const updateMapData = () => {
               map.setPaintProperty('global-boundaries-fill', 'fill-opacity', 0.); 
           }
 
+          // Clear existing to avoid ID collision and ensure category update
+          clearGlobalIsoLayers();
+
           // Detect layer name pattern from the first available country
           const detectLayerName = async () => {
               if (!props.availableCountries || props.availableCountries.length === 0) return 'isochrones';
@@ -822,7 +825,7 @@ const syncMapData = () => {
     // MapLibre updates feature-state bindings automatically, but we might need to verify if style uses it.
 };
 
-watch(() => [props.country, props.category, props.adminLevel, props.statsData, props.showGlobalIsochrones, props.isGlobalView], ([, , , stats]) => {
+watch(() => [props.country, props.category, props.adminLevel, props.statsData, props.showGlobalIsochrones, props.isGlobalView, props.availableCountries], ([, , , stats]) => {
   // Update local ref
   localStats.value = (stats || []) as any[];
   
