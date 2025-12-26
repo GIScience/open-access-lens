@@ -4,6 +4,7 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 import duckdb_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
 import Plotly from 'plotly.js-dist';
+import { STORAGE_BASE_URL, HDX_BASE_URL } from '../config';
 
 const props = defineProps<{
   country: string;
@@ -24,7 +25,7 @@ const hdxUrl = computed(() => {
     if (!props.countryName) return '#';
     // Clean name: "Sao Tome and Principe" -> "sao-tome-and-principe"
     const slug = props.countryName.toLowerCase().trim().replace(/\s+/g, '-');
-    return `https://data.humdata.org/dataset/${slug}-accessibility-indicators`;
+    return `${HDX_BASE_URL}/${slug}-accessibility-indicators`;
 });
 
 const loading = ref(false);
@@ -63,15 +64,15 @@ const initDuckDB = async () => {
 };
 
 const getFileUrl = async () => {
-    const countryUpper = props.country.toUpperCase();
+    const countryLower = props.country.toLowerCase();
     const categoryLower = props.category.toLowerCase();
-    const s3Prefix = `access/aux/stats/${countryUpper}/category=${categoryLower}/`;
-    const listUrl = `https://warm.storage.heigit.org/heigit-hdx-public?list-type=2&prefix=${s3Prefix}`;
+    const s3Prefix = `access/aux/stats/${countryLower}/category=${categoryLower}/`;
+    const listUrl = `${STORAGE_BASE_URL}?list-type=2&prefix=${s3Prefix}`;
     const listResp = await fetch(listUrl);
     const listText = await listResp.text();
     const match = listText.match(/<Key>(.*?\.parquet)<\/Key>/);
     if (match && match[1]) {
-        return `https://warm.storage.heigit.org/heigit-hdx-public/${match[1]}`;
+        return `${STORAGE_BASE_URL}/${match[1]}`;
     }
     throw new Error(`No .parquet file found (checked prefix: ${s3Prefix})`);
 };

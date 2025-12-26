@@ -6,6 +6,7 @@ import AppHeader from '../components/AppHeader.vue';
 import ChartPanel from '../components/ChartPanel.vue';
 import AboutModal from '../components/AboutModal.vue';
 import yaml from 'js-yaml';
+import { COUNTRIES_URL } from '../config';
 
 // Router setup
 const route = useRoute();
@@ -105,12 +106,12 @@ const selectedCountryLabel = computed(() => {
 // --- Methods ---
 const fetchCountries = async () => {
   try {
-    const response = await fetch('https://warm.storage.heigit.org/heigit-hdx-public/access/aux/countries.yaml');
+    const response = await fetch(COUNTRIES_URL);
     const text = await response.text();
     const data = yaml.load(text) as Record<string, any>;
     
     // Filter for Africa and Central America
-    const validRegions = ['africa', 'central-america'];
+    const validRegions = ['africa', 'central-america', 'asia', 'europe', 'north-america','south-america', 'australia-oceania'];
     const filteredCountries = Object.entries(data)
       .filter(([_, val]) => validRegions.includes(val.region) || val.slug === 'central-america')
       .map(([code, val]) => ({

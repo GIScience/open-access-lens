@@ -647,8 +647,8 @@ const updateMapData = () => {
               if (!props.availableCountries || props.availableCountries.length === 0) return 'isochrones';
               try {
                   const sample = props.availableCountries[0]!;
-                  const isoUpper = sample.value.toUpperCase();
-                  const url = `${TILES_BASE_URL}/${isoUpper}/${isoUpper}_${props.category.toLowerCase()}_isochrones.pmtiles`;
+                  const isoLower = sample.value.toLowerCase();
+                  const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
                   const p = new PMTiles(url);
                   const meta = await p.getMetadata() as { vector_layers?: { id: string }[] };
                   if (meta && meta.vector_layers && meta.vector_layers.length > 0) {
@@ -663,13 +663,13 @@ const updateMapData = () => {
         
           detectLayerName().then((detectedLayerName) => {
                props.availableCountries!.forEach(async (c) => {
-                    const isoUpper = c.value.toUpperCase();
-                    const sourceId = `global-iso-source-${isoUpper}`;
-                    const layerId = `global-iso-layer-${isoUpper}`;
+                    const isoLower = c.value.toLowerCase();
+                    const sourceId = `global-iso-source-${isoLower}`;
+                    const layerId = `global-iso-layer-${isoLower}`;
                     
                     if (map?.getSource(sourceId)) return;
 
-                    const url = `${TILES_BASE_URL}/${isoUpper}/${isoUpper}_${props.category.toLowerCase()}_isochrones.pmtiles`;
+                    const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
 
                     try {
                         map?.addSource(sourceId, {
@@ -725,9 +725,9 @@ const updateMapData = () => {
   }
 
   // --- DASHBOARD VIEW LOGIC (Existing) ---
-  const isoUpper = props.country.toUpperCase();
-  const isochronesUrl = `${TILES_BASE_URL}/${isoUpper}/${isoUpper}_${props.category.toLowerCase()}_isochrones.pmtiles`;
-  const boundariesUrl = `${TILES_BASE_URL}/${isoUpper}/${isoUpper}_boundaries.pmtiles`;
+  const isoLower = props.country.toLowerCase();
+  const isochronesUrl = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
+  const boundariesUrl = `${TILES_BASE_URL}/${isoLower}/${isoLower}_boundaries.pmtiles`;
   
   const loadSource = async () => {
     if (!map) return;
@@ -760,7 +760,7 @@ const updateMapData = () => {
         if (metaIso && metaIso.vector_layers && metaIso.vector_layers.length > 0) {
             isoLayerName = metaIso.vector_layers[0]!.id;
         } else {
-            const stem = `${isoUpper}_${props.category.toLowerCase()}_isochrones`;
+            const stem = `${isoLower}_${props.category.toLowerCase()}_isochrones`;
             isoLayerName = stem;
         }
         setupIsochronesLayer(isoLayerName);

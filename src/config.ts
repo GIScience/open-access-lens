@@ -1,4 +1,8 @@
 export const TILES_BASE_URL = 'https://warm.storage.heigit.org/heigit-hdx-public/access/aux/tiles';
+export const STORAGE_BASE_URL = 'https://warm.storage.heigit.org/heigit-hdx-public';
+export const COUNTRIES_URL = `${STORAGE_BASE_URL}/access/aux/countries.yaml`;
+
+export const HDX_BASE_URL = 'https://data.humdata.org/dataset';
 
 export const BASEMAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
