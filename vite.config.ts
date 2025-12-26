@@ -14,5 +14,5 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@duckdb/duckdb-wasm'],
   },
-  base: '/open-access-lense/'
+  base: '/open-access-lens/'
 })
