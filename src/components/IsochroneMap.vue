@@ -345,6 +345,12 @@ watch(() => props.isGlobalView, (isGlobal) => {
       }
   });
 
+  map.on('mouseleave', 'global-boundaries-fill', () => {
+      if (!map) return;
+      map.getCanvas().style.cursor = '';
+      globalPopup.remove();
+  });
+
 
 
 
