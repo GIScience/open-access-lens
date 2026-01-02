@@ -472,7 +472,7 @@ const year = new Date().getFullYear();
             <a href="https://heigit.org/imprint/" target="_blank" class="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-bold uppercase tracking-wider">Imprint</a>
         </div>
         <div class="font-bold tracking-wider ml-4">
-            {{ year }} &copy; HEIGIT gGmbH
+            {{ year }} &copy; HeiGIT gGmbH
         </div>
     </footer>
     <AboutModal v-if="isAboutOpen" @close="isAboutOpen = false" />
