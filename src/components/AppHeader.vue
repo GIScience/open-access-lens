@@ -68,7 +68,7 @@ const toggleCollapse = () => {
             <!-- Center Title -->
             <div class="text-center z-0">
                 <h1 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">
-                    Open Access Lense
+                    Open Access Lens
                 </h1>
                 <p v-if="!isCollapsed" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Mapping physical access to essential services</p>
             </div>
