@@ -168,10 +168,9 @@ watch(selectedCountry, (newVal) => {
         if (viewMode.value === 'HOME') {
             // 1. Start Sidebar Transition
             viewMode.value = 'DASHBOARD'; 
-            // 2. Delay Map Prop Update until sidebar is mostly open
-            setTimeout(() => {
-                mapCountry.value = newVal; 
-            }, 750);
+            viewMode.value = 'DASHBOARD'; 
+            // 2. Trigger Map Update immediately (Parallel Animation)
+            mapCountry.value = newVal;
         } else {
             // Already in dashboard, switch immediately
             mapCountry.value = newVal;
@@ -472,8 +471,8 @@ const year = new Date().getFullYear();
             <a href="https://heigit.org/privacy-policy/" target="_blank" class="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-bold uppercase tracking-wider">Privacy Policy</a>
             <a href="https://heigit.org/imprint/" target="_blank" class="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-bold uppercase tracking-wider">Imprint</a>
         </div>
-        <div class="font-bold uppercase tracking-wider ml-4">
-            {{ year }} &copy; HEIGIT
+        <div class="font-bold tracking-wider ml-4">
+            {{ year }} &copy; HEIGIT gGmbH
         </div>
     </footer>
     <AboutModal v-if="isAboutOpen" @close="isAboutOpen = false" />
