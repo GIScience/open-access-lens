@@ -4,7 +4,8 @@ export const COUNTRIES_URL = `${STORAGE_BASE_URL}/access/aux/countries.yaml`;
 
 export const HDX_BASE_URL = 'https://data.humdata.org/dataset';
 
-export const BASEMAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+
+export const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 // Refined 10-class YlGnBu-like (Reversed: Low=Dark, High=Light)
 export const ADMIN_COLORS_10 = [
