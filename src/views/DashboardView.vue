@@ -113,11 +113,43 @@ const fetchCountries = async () => {
     // Filter for Africa and Central America
     const validRegions = ['africa', 'central-america', 'asia', 'europe', 'north-america','south-america', 'australia-oceania'];
     const filteredCountries = Object.entries(data)
-      .filter(([_, val]) => validRegions.includes(val.region) || val.slug === 'central-america')
-      .map(([code, val]) => ({
-        value: code.toLowerCase(),
-        label: val.name || (val.slug.charAt(0).toUpperCase() + val.slug.slice(1)) 
-      }))
+      .filter(([code, val]) => {
+          if (!val) return false;
+          
+          if (code === 'RUS' || code === 'USA' || code === 'FRA') {
+              console.log(`Checking ${code}:`, val);
+              console.log(`Region Array? ${Array.isArray(val.region)}`);
+              console.log(`Region Value: ${val.region}`);
+          }
+          // 1. Handle Array Regions (e.g., USA: ['north-america', 'north-america/us'])
+          if (Array.isArray(val.region)) {
+              return val.region.some((r: string) => validRegions.includes(r));
+          }
+          // 2. Handle String Regions (Standard)
+          if (val.region && validRegions.includes(val.region)) {
+              return true;
+          }
+           // 3. Handle Special Cases / Missing Regions (e.g. Russia has no region but has slug)
+          if (!val.region && val.slug) {
+              return true; // Allow if it has a valid slug (e.g. Russia)
+          }
+          
+          return val.slug === 'central-america';
+      })
+      .map(([code, val]) => {
+        // Handle Slug (can be string or array)
+        const slug = Array.isArray(val.slug) ? val.slug[0] : val.slug;
+        // Prefer explicit name, otherwise format specific slug
+        let label = val.name;
+        if (!label && slug) {
+             label = slug.charAt(0).toUpperCase() + slug.slice(1);
+        }
+        
+        return {
+            value: code.toLowerCase(),
+            label: label || code 
+        };
+      })
       .sort((a, b) => a.label.localeCompare(b.label));
 
     countries.value = filteredCountries;
