@@ -5,7 +5,7 @@ import AboutModal from './AboutModal.vue';
 
 
 const props = defineProps<{
-  isDarkMode?: boolean;
+  // isDarkMode?: boolean;
   countries: { label: string; value: string }[];
   categories: { label: string; value: string }[];
   selectedCategory: string;
@@ -13,7 +13,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'toggle-theme'): void;
+  // (e: 'toggle-theme'): void;
   (e: 'select-country', value: string): void;
   (e: 'update:selectedCategory', value: string): void;
   (e: 'update:isGlobalIsochrones', value: boolean): void;
@@ -82,15 +82,15 @@ const toggleCollapse = () => {
                     <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
-                 <!-- Theme Toggle (Always Visible) -->
-                <button 
+                 <!-- Theme Toggle (Always Visible) - REMOVED -->
+                <!-- <button 
                     @click="emit('toggle-theme')" 
                     class="h-8 w-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                     title="Toggle Theme"
                 >
                     <span v-if="isDarkMode" class="text-sm">☀️</span>
                     <span v-else class="text-sm">🌙</span>
-                </button>
+                </button> -->
             </div>
         </div>
 

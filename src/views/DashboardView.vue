@@ -31,26 +31,28 @@ const selectedRange = ref(5000); // Default
 
 const chartData = ref<any[]>([]);
 // 1. Checks system preference. Default to Dark if undefined or not strictly light.
-const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-const isDarkMode = ref(!prefersLight);
+// const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+// const isDarkMode = ref(!prefersLight);
 
 // 2. Single source of truth function
-const applyTheme = (dark: boolean) => {
-    if (dark) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-};
+// const applyTheme = (dark: boolean) => {
+//     if (dark) {
+//         document.documentElement.classList.add('dark');
+//     } else {
+//         document.documentElement.classList.remove('dark');
+//     }
+// };
 
-const toggleTheme = () => { 
-    isDarkMode.value = !isDarkMode.value;
-};
+// const toggleTheme = () => { 
+//     isDarkMode.value = !isDarkMode.value;
+// };
 
 // 3. Watcher ensures UI and DOM are always in sync (cleaner than putting logic in toggle function)
-watch(isDarkMode, (newVal) => {
-    applyTheme(newVal);
-}, { immediate: true });
+// watch(isDarkMode, (newVal) => {
+//     applyTheme(newVal);
+// }, { immediate: true });
+// Ensure Light Mode
+document.documentElement.classList.remove('dark');
 
 // --- Constants ---
 const categories = [
@@ -343,12 +345,10 @@ const year = new Date().getFullYear();
                  <transition name="fade">
                     <div v-if="viewMode === 'HOME'">
                          <AppHeader 
-                            :is-dark-mode="isDarkMode"
                             :countries="countries"
                             :categories="categories"
                             :selected-category="selectedCategory"
                             :is-global-isochrones="isGlobalIsochrones"
-                            @toggle-theme="toggleTheme"
                             @select-country="selectCountry"
                             @update:selected-category="selectedCategory = $event"
                             @update:is-global-isochrones="isGlobalIsochrones = $event"
@@ -440,15 +440,15 @@ const year = new Date().getFullYear();
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                                 </button>
 
-                                <!-- Theme Toggle -->
-                                <button 
+                                <!-- Theme Toggle (Removed) -->
+                                <!-- <button 
                                     @click="toggleTheme" 
                                     class="h-[38px] w-[38px] flex-none flex items-center justify-center bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
                                     title="Toggle Theme"
                                 >
                                     <span v-if="isDarkMode">☀️</span>
                                     <span v-else>🌙</span>
-                                </button>
+                                </button> -->
                             </div>
 
                         </div>
