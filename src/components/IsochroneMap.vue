@@ -931,7 +931,7 @@ onUpdated(() => {
 <template>
   <div ref="mapContainer" class="map-container relative">
     <div v-if="!isGlobalView || (isGlobalView && showGlobalIsochrones)" class="legend-overlay bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-3 rounded shadow-lg text-slate-900 dark:text-slate-200 text-xs transition-all duration-300" 
-         :class="{ 'w-auto': isLegendExpanded, 'w-10 h-10 p-0 flex items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800': !isLegendExpanded }">
+         :class="{ 'w-auto': isLegendExpanded, 'w-auto h-auto p-2 flex items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800': !isLegendExpanded }">
         
         <!-- Expanded Content -->
         <div v-if="isLegendExpanded">
@@ -995,8 +995,9 @@ onUpdated(() => {
         </div>
 
         <!-- Collapsed Icon -->
-        <button v-else @click="isLegendExpanded = true" class="w-full h-full flex items-center justify-center text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 focus:outline-none" title="Show Legend">
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+        <button v-else @click="isLegendExpanded = true" class="w-full h-full flex items-center gap-2 justify-center text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 focus:outline-none" title="Show Legend">
+             <span class="font-bold uppercase tracking-wider text-[10px]">Legend</span>
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
         </button>
@@ -1021,7 +1022,7 @@ onUpdated(() => {
 
 .legend-overlay {
     position: absolute;
-    top: 145px;
+    top: 20px;
     left: 20px;
     z-index: 10;
 
