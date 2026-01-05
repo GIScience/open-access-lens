@@ -57,6 +57,11 @@ const isZoomingToCountry = ref(false);
 
 const opacity = ref(0.85); // Default updated to 0.85
 const hiddenLegendLabels = ref<Set<string>>(new Set());
+
+// --- CONCURRENCY & CACHING ---
+const currentUpdateId = ref(0);
+const layerNameCache = new Map<string, string>(); // Cache detected layer names by ISO
+
 const toggleLegendItem = (label: string) => {
     if (hiddenLegendLabels.value.has(label)) {
         hiddenLegendLabels.value.delete(label);
@@ -573,6 +578,9 @@ watch(() => props.selectedDistrict, () => {
 
 const updateMapData = () => {
   if (!map) return;
+  
+  // Increment ID to cancel any pending async operations from previous calls
+  const myUpdateId = ++currentUpdateId.value;
 
   // 1. Cleanup existing layers
   if (map.getLayer('isochrones-layer')) map.removeLayer('isochrones-layer');
@@ -652,17 +660,26 @@ const updateMapData = () => {
           clearGlobalIsoLayers();
 
           // Detect layer name pattern from the first available country
+          // Detect layer name pattern from the first available country
           const detectLayerName = async () => {
               if (!props.availableCountries || props.availableCountries.length === 0) return 'isochrones';
+              
+              const sample = props.availableCountries[0]!;
+              const isoLower = sample.value.toLowerCase();
+              
+              if (layerNameCache.has(isoLower)) {
+                  return layerNameCache.get(isoLower)!;
+              }
+
               try {
-                  const sample = props.availableCountries[0]!;
-                  const isoLower = sample.value.toLowerCase();
                   const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
                   const p = new PMTiles(url);
                   const meta = await p.getMetadata() as { vector_layers?: { id: string }[] };
                   if (meta && meta.vector_layers && meta.vector_layers.length > 0) {
-                      console.log('[MapCanvas] Detected Global Layer Name:', meta.vector_layers[0]!.id);
-                      return meta.vector_layers[0]!.id;
+                      const id = meta.vector_layers[0]!.id;
+                      console.log('[MapCanvas] Detected Global Layer Name:', id);
+                      layerNameCache.set(isoLower, id);
+                      return id;
                   }
               } catch (e) {
                   console.warn('[MapCanvas] Failed to detect layer name, defaulting to "isochrones"', e);
@@ -670,9 +687,22 @@ const updateMapData = () => {
               return 'isochrones';
           };
         
-          detectLayerName().then((detectedLayerName) => {
-               props.availableCountries!.forEach(async (c) => {
+          detectLayerName().then(async (detectedLayerName) => {
+               // Check if we are still the latest update
+               if (myUpdateId !== currentUpdateId.value) {
+                   console.log('[MapCanvas] Aborting stale global loading', myUpdateId);
+                   return;
+               }
+
+               console.time('GlobalIsochronesLoad');
+               const promises = props.availableCountries!.map(async (c) => {
+                    // Double check inside loop? Not strictly necessary if we cancel at the block level, 
+                    // but good if loop is slow.
+                    if (myUpdateId !== currentUpdateId.value) return;
+
                     const isoLower = c.value.toLowerCase();
+                    // ... (existing logic) ...
+                    // (Ensure no changes to loop body unless necessary, but logic remains same)
                     const sourceId = `global-iso-source-${isoLower}`;
                     const layerId = `global-iso-layer-${isoLower}`;
                     
@@ -700,11 +730,7 @@ const updateMapData = () => {
                         }
 
                         // Use the detected layer name (assuming consistency across files)
-                        // Fallback to stem if needed, but detection is safer.
                         let layerName = detectedLayerName;
-                        
-                        // Safety check: if detection returned generic 'isochrones', but this specific file uses stem?
-                        // We rely on consistency.
                         
                         map?.addLayer({
                             id: layerId,
@@ -721,6 +747,11 @@ const updateMapData = () => {
                         // ignore 
                     }
                 });
+                
+                await Promise.all(promises);
+                if (myUpdateId === currentUpdateId.value) {
+                     console.timeEnd('GlobalIsochronesLoad');
+                }
           });
 
       } else {
@@ -740,6 +771,9 @@ const updateMapData = () => {
   
   const loadSource = async () => {
     if (!map) return;
+    
+    // Check for Stale Update
+    if (myUpdateId !== currentUpdateId.value) return;
 
     // Safety: If dashboard mode but NO country yet (delayed), wait.
     if (!props.country) return;
