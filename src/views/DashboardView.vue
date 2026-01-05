@@ -336,9 +336,8 @@ const year = new Date().getFullYear();
             class="relative h-full flex flex-col transition-[width] duration-700 ease-in-out border-r border-slate-200 dark:border-slate-800"
             :class="viewMode === 'HOME' ? 'w-full' : 'w-full md:w-1/2'"
         >
-            <!-- 1. HEADER OVERLAY -->
-            <!-- Positioned absolutely on top of the map -->
-            <div class="absolute top-0 left-0 w-full z-20 pointer-events-auto">
+            <!-- 1. HEADER (Now Relative, no overlap) -->
+            <div class="w-full z-20 pointer-events-auto bg-white dark:bg-slate-950 relative shadow-sm">
                  
                  <!-- HOME Header -->
                  <transition name="fade">
