@@ -202,13 +202,7 @@ onMounted(() => {
   // Mac-style Trackpad Panning: Map Wheel (2-finger scroll) to Pan
       map.on('load', () => {
       // Basic load event
-      const canvas = map!.getCanvas();
-      canvas.addEventListener('wheel', (e) => {
-          if (e.ctrlKey) return; 
-          e.preventDefault();
-          map!.panBy([e.deltaX, e.deltaY], { duration: 0 });
-      }, { passive: false });
-      
+      // Removed custom wheel event that caused jumpy zooming: MapLibre natively handles scroll zoom.
       // Ensure data is loaded initially
       updateMapData();
 
