@@ -659,100 +659,88 @@ const updateMapData = () => {
           // Clear existing to avoid ID collision and ensure category update
           clearGlobalIsoLayers();
 
-          // Detect layer name pattern from the first available country
-          // Detect layer name pattern from the first available country
-          const detectLayerName = async () => {
-              if (!props.availableCountries || props.availableCountries.length === 0) return 'isochrones';
-              
-              const sample = props.availableCountries[0]!;
-              const isoLower = sample.value.toLowerCase();
-              
-              if (layerNameCache.has(isoLower)) {
-                  return layerNameCache.get(isoLower)!;
+          const getLayerName = async (isoLower: string, category: string) => {
+              const cacheKey = `${isoLower}_${category.toLowerCase()}`;
+              if (layerNameCache.has(cacheKey)) {
+                  return layerNameCache.get(cacheKey)!;
               }
-
               try {
-                  const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
+                  const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${category.toLowerCase()}_isochrones.pmtiles`;
                   const p = new PMTiles(url);
                   const meta = await p.getMetadata() as { vector_layers?: { id: string }[] };
                   if (meta && meta.vector_layers && meta.vector_layers.length > 0) {
                       const id = meta.vector_layers[0]!.id;
-                      console.log('[MapCanvas] Detected Global Layer Name:', id);
-                      layerNameCache.set(isoLower, id);
+                      layerNameCache.set(cacheKey, id);
                       return id;
                   }
               } catch (e) {
-                  console.warn('[MapCanvas] Failed to detect layer name, defaulting to "isochrones"', e);
+                  // silent catch for missing boundaries/files
               }
-              return 'isochrones';
+              return 'isochrones'; // fallback
           };
-        
-          detectLayerName().then(async (detectedLayerName) => {
-               // Check if we are still the latest update
-               if (myUpdateId !== currentUpdateId.value) {
-                   console.log('[MapCanvas] Aborting stale global loading', myUpdateId);
-                   return;
-               }
 
-               console.time('GlobalIsochronesLoad');
-               const promises = props.availableCountries!.map(async (c) => {
-                    // Double check inside loop? Not strictly necessary if we cancel at the block level, 
-                    // but good if loop is slow.
-                    if (myUpdateId !== currentUpdateId.value) return;
+          (async () => {
+              // Check if we are still the latest update
+              if (myUpdateId !== currentUpdateId.value) {
+                  console.log('[MapCanvas] Aborting stale global loading', myUpdateId);
+                  return;
+              }
 
-                    const isoLower = c.value.toLowerCase();
-                    // ... (existing logic) ...
-                    // (Ensure no changes to loop body unless necessary, but logic remains same)
-                    const sourceId = `global-iso-source-${isoLower}`;
-                    const layerId = `global-iso-layer-${isoLower}`;
-                    
-                    if (map?.getSource(sourceId)) return;
+              console.time('GlobalIsochronesLoad');
+              const promises = props.availableCountries!.map(async (c) => {
+                  if (myUpdateId !== currentUpdateId.value) return;
 
-                    const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
+                  const isoLower = c.value.toLowerCase();
+                  const sourceId = `global-iso-source-${isoLower}`;
+                  const layerId = `global-iso-layer-${isoLower}`;
+                  
+                  if (map?.getSource(sourceId)) return;
 
-                    try {
-                        map?.addSource(sourceId, {
-                            type: 'vector',
-                            url: `pmtiles://${url}`,
-                            attribution: ''
-                        });
+                  const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
 
-                        // Standard Isochrone Color Steps
-                        let steps: any[] = [];
-                        if (props.category === 'education') {
-                            steps = ['step', ['to-number', ['get', 'range']],
-                                '#fde725', 5001, '#b5de2b', 10001, '#6ece58', 15001, '#35b779', 20001, '#1f9e89', 25001, '#26828e', 30001, '#31688e', 35001, '#3e4989', 40001, '#482878', 45001, '#440154'
-                            ];
-                        } else {
-                            steps = ['step', ['to-number', ['get', 'range']],
-                                '#fde725', 601, '#c2df23', 1201, '#86d549', 1801, '#52c569', 2401, '#2ab07f', 3001, '#1e9b8a', 3601, '#25858e', 4201, '#2d708e', 4801, '#38588c', 5401, '#433e85', 6001, '#482173', 6601, '#440154'
-                            ];
-                        }
+                  try {
+                      const layerName = await getLayerName(isoLower, props.category);
+                      if (myUpdateId !== currentUpdateId.value) return;
 
-                        // Use the detected layer name (assuming consistency across files)
-                        let layerName = detectedLayerName;
-                        
-                        map?.addLayer({
-                            id: layerId,
-                            type: 'fill',
-                            source: sourceId,
-                            'source-layer': layerName,
-                            paint: {
-                                'fill-color': steps as any,
-                                'fill-opacity': 0.7
-                            }
-                        }, 'global-boundaries-line'); 
+                      map?.addSource(sourceId, {
+                          type: 'vector',
+                          url: `pmtiles://${url}`,
+                          attribution: ''
+                      });
 
-                    } catch (e) {
-                        // ignore 
-                    }
-                });
-                
-                await Promise.all(promises);
-                if (myUpdateId === currentUpdateId.value) {
-                     console.timeEnd('GlobalIsochronesLoad');
-                }
-          });
+                      // Standard Isochrone Color Steps
+                      let steps: any[] = [];
+                      if (props.category === 'education') {
+                          steps = ['step', ['to-number', ['get', 'range']],
+                              '#fde725', 5001, '#b5de2b', 10001, '#6ece58', 15001, '#35b779', 20001, '#1f9e89', 25001, '#26828e', 30001, '#31688e', 35001, '#3e4989', 40001, '#482878', 45001, '#440154'
+                          ];
+                      } else {
+                          steps = ['step', ['to-number', ['get', 'range']],
+                              '#fde725', 601, '#c2df23', 1201, '#86d549', 1801, '#52c569', 2401, '#2ab07f', 3001, '#1e9b8a', 3601, '#25858e', 4201, '#2d708e', 4801, '#38588c', 5401, '#433e85', 6001, '#482173', 6601, '#440154'
+                          ];
+                      }
+
+                      map?.addLayer({
+                          id: layerId,
+                          type: 'fill',
+                          source: sourceId,
+                          'source-layer': layerName,
+                          paint: {
+                              'fill-color': steps as any,
+                              'fill-opacity': 0.7
+                          }
+                      }, 'global-boundaries-line'); 
+
+                  } catch (e) {
+                      // ignore 
+                  }
+              });
+              
+              await Promise.all(promises);
+              if (myUpdateId === currentUpdateId.value) {
+                   console.timeEnd('GlobalIsochronesLoad');
+              }
+          })();
 
       } else {
           clearGlobalIsoLayers();
