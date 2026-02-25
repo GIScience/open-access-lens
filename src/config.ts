@@ -1,5 +1,5 @@
-export const TILES_BASE_URL = 'https://warm.storage.heigit.org/heigit-hdx-public/access/aux/tiles';
-export const STORAGE_BASE_URL = 'https://warm.storage.heigit.org/heigit-hdx-public';
+export const TILES_BASE_URL = 'https://hot.storage.heigit.org/heigit-hdx-public/access/aux/tiles';
+export const STORAGE_BASE_URL = 'https://hot.storage.heigit.org/heigit-hdx-public';
 export const COUNTRIES_URL = `${STORAGE_BASE_URL}/access/aux/countries.yaml`;
 
 export const HDX_BASE_URL = 'https://data.humdata.org/dataset';
