@@ -63,18 +63,10 @@ const initDuckDB = async () => {
     }
 };
 
-const getFileUrl = async () => {
+const getFileUrl = () => {
     const countryLower = props.country.toLowerCase();
     const categoryLower = props.category.toLowerCase();
-    const s3Prefix = `access/aux/stats/${countryLower}/category=${categoryLower}/`;
-    const listUrl = `${STORAGE_BASE_URL}?list-type=2&prefix=${s3Prefix}`;
-    const listResp = await fetch(listUrl);
-    const listText = await listResp.text();
-    const match = listText.match(/<Key>(.*?\.parquet)<\/Key>/);
-    if (match && match[1]) {
-        return `${STORAGE_BASE_URL}/${match[1]}`;
-    }
-    throw new Error(`No .parquet file found (checked prefix: ${s3Prefix})`);
+    return `${STORAGE_BASE_URL}/access/aux/stats/${countryLower}/category=${categoryLower}/data.parquet`;
 };
 
 const fetchData = async () => {
