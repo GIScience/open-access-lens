@@ -329,7 +329,12 @@ const year = new Date().getFullYear();
 
 <template>
   <div class="h-screen w-full overflow-hidden font-sans flex flex-col relative">
-    
+
+    <!-- MAINTENANCE BANNER -->
+    <div class="w-full bg-amber-500 text-black text-center py-2 px-4 font-semibold text-sm z-50 flex items-center justify-center gap-2 shrink-0">
+      <span>🚧🔧 Currently under maintenance — some data sources are temporarily unavailable due to server restrictions 🔧🚧</span>
+    </div>
+
     <!-- MAIN SPLIT CONTAINER -->
     <div class="flex-1 flex flex-row relative min-h-0 w-full">
 
