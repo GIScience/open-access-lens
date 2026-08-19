@@ -54,6 +54,13 @@ const isLegendExpanded = ref(true);
 const localStats = ref<any[]>([]);
 const currentAdminLayerName = ref<string>('');
 const isZoomingToCountry = ref(false);
+// Set true right before entering local (country-detail) view from global
+// view, so loadSource()'s fitBounds knows to wait for the sidebar's
+// CSS width transition to finish before fitting - otherwise it fits
+// against the still-full-width container and the country ends up
+// shifted/cropped once the sidebar finishes opening. Mirrors the existing
+// delay used in the opposite (local -> global) direction below.
+const localViewJustOpened = ref(false);
 
 const opacity = ref(0.85); // Default updated to 0.85
 const hiddenLegendLabels = ref<Set<string>>(new Set());
@@ -232,6 +239,10 @@ watch(() => props.isGlobalView, (isGlobal) => {
     };
     map.on('styledata', onStyleData);
 
+    if (!isGlobal) {
+        localViewJustOpened.value = true;
+    }
+
     // Zoom Reset if going local -> global
     if (isGlobal) {
         // 1. The sidebar starts closing NOW via CSS (duration-700)
@@ -354,21 +365,31 @@ watch(() => props.isGlobalView, (isGlobal) => {
           const iso = props?.ISO_A3 || props?.iso_a3 || props?.ADM0_A3 || props?.adm0_a3 || props?.sov_a3;
           
           if (iso && iso !== 'N/A' && iso !== '-99') {
-              // Zoom to feature
               const bounds = getBbox(feature);
-              
-              if (bounds && map) {
-                  isZoomingToCountry.value = true; // Set flag
-                  map.fitBounds(bounds as [number, number, number, number], {
-                      padding: { top: 50, bottom: 50, left: 50, right: 50 },
-                      duration: 2000, 
-                      essential: true,
-                      animate: true
-                  });
-              }
 
-              // Emit selection to trigger data load (but NOT UI transition yet)
+              // Emit selection immediately so DashboardView starts opening
+              // the chart sidebar right away (feels responsive).
               emit('select-country', iso);
+
+              // But wait for that sidebar's CSS width transition (700ms, see
+              // DashboardView.vue's duration-700 pane classes) to finish
+              // before fitting bounds. fitBounds computes its target against
+              // the map container's size *at call time* - firing it while
+              // the container is still animating from full width down to
+              // half width fits the wrong (larger) width, so the country
+              // ends up cropped/shifted once the sidebar finishes opening.
+              if (bounds && map) {
+                  setTimeout(() => {
+                      if (!map) return;
+                      isZoomingToCountry.value = true; // Set flag
+                      map.fitBounds(bounds as [number, number, number, number], {
+                          padding: { top: 50, bottom: 50, left: 50, right: 50 },
+                          duration: 2000,
+                          essential: true,
+                          animate: true
+                      });
+                  }, 700);
+              }
           }
       }
   });
@@ -750,10 +771,27 @@ const updateMapData = () => {
         // ... (rest of loadSource logic)
         const headerIso = await pIso.getHeader();
         if (headerIso) {
-            map.fitBounds(
-                [[headerIso.minLon, headerIso.minLat], [headerIso.maxLon, headerIso.maxLat]],
-                { padding: 20, animate: true }
-            );
+            const isoBounds: [[number, number], [number, number]] = [
+                [headerIso.minLon, headerIso.minLat],
+                [headerIso.maxLon, headerIso.maxLat]
+            ];
+
+            if (localViewJustOpened.value) {
+                // Just switched from global to local view: the sidebar's
+                // CSS width transition (duration-700) is still shrinking
+                // the map container. Wait for it to finish and force a
+                // resize before fitting, same pattern as the global-view
+                // re-entry case above, otherwise this fits against the
+                // still-full-width container.
+                localViewJustOpened.value = false;
+                setTimeout(() => {
+                    if (!map) return;
+                    map.resize();
+                    map.fitBounds(isoBounds, { padding: 20, animate: true });
+                }, 750);
+            } else {
+                map.fitBounds(isoBounds, { padding: 20, animate: true });
+            }
         }
 
         if (!map.getSource('isochrones-source')) {
