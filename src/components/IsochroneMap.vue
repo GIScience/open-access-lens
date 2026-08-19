@@ -301,19 +301,6 @@ watch(() => props.isGlobalView, (isGlobal) => {
   });
 
   // --- GLOBAL VIEW INTERACTION ---
-  
-  // Click Handler for Global Navigation
-  map.on('click', 'global-boundaries-fill', (e) => {
-      if (!e.features || e.features.length === 0) return;
-      const feature = e.features[0]!;
-      const props = feature.properties;
-      const iso = props?.iso_a3 || props?.ISO_A3 || props?.adm0_a3;
-      
-      if (iso && iso !== '-99') {
-          console.log('Selected Global Country:', iso);
-          emit('select-country', iso);
-      }
-  });
 
   // Pointer Cursor & Tooltip Popup for Global View
   const globalPopup = new maplibregl.Popup({
@@ -367,7 +354,7 @@ watch(() => props.isGlobalView, (isGlobal) => {
           const props = feature.properties;
           const iso = props?.ISO_A3 || props?.iso_a3 || props?.ADM0_A3 || props?.adm0_a3 || props?.sov_a3;
           
-          if (iso && iso !== 'N/A') {
+          if (iso && iso !== 'N/A' && iso !== '-99') {
               // Zoom to feature
               const bounds = getBbox(feature);
               
