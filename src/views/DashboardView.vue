@@ -447,6 +447,7 @@ const year = new Date().getFullYear();
         >
              <div class="flex-1 overflow-hidden p-4 h-full min-w-[320px]">
                  <ChartPanel 
+                  v-if="viewMode === 'DASHBOARD'"
                   :country="selectedCountry" 
                   :country-name="selectedCountryLabel"
                   :category="selectedCategory" 
