@@ -54,13 +54,6 @@ const isLegendExpanded = ref(true);
 const localStats = ref<any[]>([]);
 const currentAdminLayerName = ref<string>('');
 const isZoomingToCountry = ref(false);
-// Set true right before entering local (country-detail) view from global
-// view, so loadSource()'s fitBounds knows to wait for the sidebar's
-// CSS width transition to finish before fitting - otherwise it fits
-// against the still-full-width container and the country ends up
-// shifted/cropped once the sidebar finishes opening. Mirrors the existing
-// delay used in the opposite (local -> global) direction below.
-const localViewJustOpened = ref(false);
 
 const opacity = ref(0.85); // Default updated to 0.85
 const hiddenLegendLabels = ref<Set<string>>(new Set());
@@ -222,48 +215,37 @@ onMounted(() => {
   });
 
 // Watch Global View changes (for transitions)
+// The sidebar's CSS width transition (duration-700) starts the moment this
+// fires, and the ResizeObserver below calls map.resize() continuously
+// throughout it. Running the full layer/source rebuild (updateMapData) and
+// camera fit while that's happening was causing the canvas to flash black
+// during the local <-> global transition - so both are delayed until the
+// transition has settled, matching duration-700 plus a small buffer.
+// (This also replaces an old map.setStyle(BASEMAP_STYLE) call here, a
+// leftover from removed dark-mode logic: BASEMAP_STYLE is a single
+// constant now, so that reload was pure waste, forcing a full basemap
+// tile/sprite/glyph refetch on every toggle for no reason.)
 watch(() => props.isGlobalView, (isGlobal) => {
     if (!map) return;
-    
-    // Switch Style (Same logic as Dark Mode)
-    // Switch Style (Same logic as Dark Mode)
-    const style = BASEMAP_STYLE;
-    
-    map.setStyle(style);
 
-    const onStyleData = () => {
-        if (map?.isStyleLoaded()) {
-           updateMapData();
-           map.off('styledata', onStyleData);
-        }
-    };
-    map.on('styledata', onStyleData);
+    setTimeout(() => {
+        if (!map) return;
 
-    if (!isGlobal) {
-        localViewJustOpened.value = true;
-    }
+        // Ensure the map's internal canvas size matches the now-settled
+        // container before doing anything else with it.
+        map.resize();
 
-    // Zoom Reset if going local -> global
-    if (isGlobal) {
-        // 1. The sidebar starts closing NOW via CSS (duration-700)
-        
-        // 2. We wait slightly longer than the CSS transition (e.g., 750ms)
-        setTimeout(() => {
-            if (!map) return;
+        updateMapData();
 
-            // 3. Tell map to claim the full space
-            map.resize();
-
-            // 4. NOW zoom to the world. 
-            // Since the map is full-width, this will center perfectly.
+        if (isGlobal) {
+            // Since the map is full-width again, this centers perfectly.
             map.fitBounds([[-170, -50], [170, 80]], {
-                padding: 0, // No padding needed for global view
+                padding: 0,
                 animate: true,
                 duration: 2000
             });
-            
-        }, 750); // Match this to your CSS 'duration-700' + buffer
-    }
+        }
+    }, 750); // Match this to the CSS 'duration-700' pane transition + buffer
 });
 
 
@@ -776,22 +758,7 @@ const updateMapData = () => {
                 [headerIso.maxLon, headerIso.maxLat]
             ];
 
-            if (localViewJustOpened.value) {
-                // Just switched from global to local view: the sidebar's
-                // CSS width transition (duration-700) is still shrinking
-                // the map container. Wait for it to finish and force a
-                // resize before fitting, same pattern as the global-view
-                // re-entry case above, otherwise this fits against the
-                // still-full-width container.
-                localViewJustOpened.value = false;
-                setTimeout(() => {
-                    if (!map) return;
-                    map.resize();
-                    map.fitBounds(isoBounds, { padding: 20, animate: true });
-                }, 750);
-            } else {
-                map.fitBounds(isoBounds, { padding: 20, animate: true });
-            }
+            map.fitBounds(isoBounds, { padding: 20, animate: true });
         }
 
         if (!map.getSource('isochrones-source')) {
