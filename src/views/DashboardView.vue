@@ -178,7 +178,12 @@ const selectCountry = (iso: string) => {
         return;
     }
     // Update data but DO NOT switch mode yet. Wait for map zoom.
-    selectedCountry.value = iso;
+    // Normalize case here: countries.value/route params are always lowercase,
+    // but a map click passes the raw ISO_A3 tile property (usually uppercase).
+    // Without this, selectedCountry could get set uppercase, the route push
+    // "/COD" would then get corrected to "/cod" by the route watcher, and
+    // that second push doubles up browser history for one click.
+    selectedCountry.value = iso.toLowerCase();
     isDropdownOpen.value = false;
     searchQuery.value = '';
     
@@ -270,8 +275,14 @@ watch(() => route.path, (newPath) => {
     }
 });
 
+// Only push when the route doesn't already reflect selectedCountry, so a
+// selection that originated from the route watcher (browser back/forward,
+// or loading a /:country URL directly) doesn't immediately push right back
+// to the page we're already on.
 watch(selectedCountry, (newVal) => {
-    if (newVal) router.push(`/${newVal}`);
+    if (newVal && route.path !== `/${newVal}`) {
+        router.push(`/${newVal}`);
+    }
 });
 const year = new Date().getFullYear();
 </script>
