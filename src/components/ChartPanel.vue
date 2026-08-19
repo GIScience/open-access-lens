@@ -37,7 +37,7 @@ const rankingData = ref<any[]>([]);
 const columns = ref<string[]>([]);
 const currentPage = ref(1);
 // Tabs
-const activeTab = ref<'table' | 'barchart' | 'linechart' | 'waffle' | 'ranking' | 'butterfly'>('waffle');
+const activeTab = ref<'table' | 'barchart' | 'waffle' | 'ranking' | 'butterfly'>('waffle');
 
 let db: duckdb.AsyncDuckDB | null = null;
 let conn: duckdb.AsyncDuckDBConnection | null = null;
@@ -132,7 +132,6 @@ const fetchLineChartData = async () => {
         `;
         const arrowResult = await conn.query(query);
         lineChartData.value = arrowResult.toArray().map((row: any) => row.toJSON());
-        renderLineChart();
     } catch (e) {
         console.error("Line Chart Fetch Error:", e);
     }
@@ -310,26 +309,26 @@ const renderChart = async (data: any[]) => {
     });
 
     const layout = {
-        title: { text: `Population Access by Admin Area`, font: { color: '#fff' } },
+        title: { text: `Population Access by Admin Area`, font: { color: '#1e293b' } },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         barmode: 'stack', 
         xaxis: {
-            title: { text: 'Admin Area', font: { color: '#aaa' } },
-            tickfont: { color: '#aaa' },
-            gridcolor: 'rgba(255,255,255,0.1)',
+            title: { text: 'Admin Area', font: { color: '#64748b' } },
+            tickfont: { color: '#64748b' },
+            gridcolor: 'rgba(15,23,42,0.08)',
             fixedrange: true
         },
         yaxis: {
-            title: { text: 'Population Share (%)', font: { color: '#aaa' } },
-            tickfont: { color: '#aaa' },
-            gridcolor: 'rgba(255,255,255,0.1)',
+            title: { text: 'Population Share (%)', font: { color: '#64748b' } },
+            tickfont: { color: '#64748b' },
+            gridcolor: 'rgba(15,23,42,0.08)',
             fixedrange: true,
             range: [0, 100]
         },
         margin: { t: 40, r: 20, b: 80, l: 60 },
         showlegend: true,
-        legend: { font: { color: '#aaa' }, orientation: 'h', y: -0.2 }
+        legend: { font: { color: '#64748b' }, orientation: 'h', y: -0.2 }
     };
 
     try {
@@ -337,62 +336,6 @@ const renderChart = async (data: any[]) => {
     } catch (e) {
         console.error("Plotly Render Error:", e);
     }
-};
-
-const renderLineChart = async () => {
-    await nextTick();
-    const graphDiv = document.getElementById('line-chart');
-    if (!graphDiv || lineChartData.value.length === 0) return;
-
-    const labelMap: Record<string, string> = {
-        'total': 'Total',
-        'under_5': 'Under 5',
-        'school_age': 'School Age',
-        'women_childbearing': 'Women',
-        'adults': 'Adults',
-        'elderly': 'Elderly'
-    };
-
-    const sortOrder = ['total', 'under_5', 'school_age', 'women_childbearing', 'adults', 'elderly'];
-    const typeColors: Record<string, string> = {
-        'total': '#ffffff', 'under_5': '#ffbe0b', 'school_age': '#fb5607',
-        'women_childbearing': '#ff006e', 'adults': '#8338ec', 'elderly': '#3a86ff'
-    };
-
-    let types = Array.from(new Set(lineChartData.value.map(d => d.population_type)));
-    types.sort((a, b) => {
-        const idxA = sortOrder.indexOf(a);
-        const idxB = sortOrder.indexOf(b);
-        return (idxA > -1 ? idxA : 999) - (idxB > -1 ? idxB : 999);
-    });
-    
-    const traces = types.map(type => {
-        const typeData = lineChartData.value
-            .filter(d => d.population_type === type)
-            .sort((a, b) => Number(a.range) - Number(b.range));
-            
-        return {
-            x: typeData.map(d => props.category === 'education' ? Number(d.range)/1000 : Number(d.range)/60),
-            y: typeData.map(d => Number(d.population)), 
-            name: labelMap[type] || type,
-            mode: 'lines',
-            type: 'scatter',
-            line: { shape: 'spline', color: typeColors[type] || '#888' } 
-        };
-    });
-
-    const xLabel = props.category === 'education' ? 'Range (km)' : 'Time (min)';
-    const layout = {
-        title: { text: `National Accessibility (ADM0) - Absolute`, font: { color: '#fff' } },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(255,255,255,0.05)',
-        xaxis: { title: { text: xLabel, font: { color: '#aaa' } }, tickfont: { color: '#aaa' }, gridcolor: 'rgba(255,255,255,0.1)' },
-        yaxis: { title: { text: 'Population', font: { color: '#aaa' } }, tickfont: { color: '#aaa' }, gridcolor: 'rgba(255,255,255,0.1)' },
-        margin: { t: 50, r: 30, b: 60, l: 60 },
-        showlegend: true,
-        legend: { font: { color: '#aaa' }, orientation: 'h', y: -0.2 }
-    };
-    try { await Plotly.newPlot(graphDiv as any, traces as any, layout as any, { responsive: true, displayModeBar: false }); } catch (e) { console.error(e); }
 };
 
 const processUpdates = () => {
@@ -406,7 +349,6 @@ const processUpdates = () => {
 
     // Tab Logic
     if (activeTab.value === 'barchart') setTimeout(() => renderChart(allData.value), 200);
-    else if (activeTab.value === 'linechart') setTimeout(() => renderLineChart(), 200);
     else if (activeTab.value === 'ranking') fetchRankingData();
 };
 
@@ -417,10 +359,6 @@ watch(() => props.selectedRange, () => { processUpdates(); });
 
 watch(activeTab, (newTab) => {
     if (newTab === 'barchart') setTimeout(() => renderChart(allData.value), 200);
-    if (newTab === 'linechart') {
-        if (lineChartData.value.length === 0) fetchLineChartData();
-        else renderLineChart();
-    }
     if (newTab === 'ranking') fetchRankingData();
     if (newTab === 'table' && tableData.value.length === 0) fetchTableData();
 });
@@ -614,13 +552,12 @@ const selectDistrict = (id: string) => {
             <button class="px-3 py-2 rounded text-sm transition-colors" :class="activeTab === 'ranking' ? 'text-teal-600 dark:text-teal-400 font-bold bg-teal-50 dark:bg-teal-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'" @click="activeTab = 'ranking'">Ranking</button>
             <button class="px-3 py-2 rounded text-sm transition-colors" :class="activeTab === 'table' ? 'text-teal-600 dark:text-teal-400 font-bold bg-teal-50 dark:bg-teal-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'" @click="activeTab = 'table'">Table</button>
             <button class="px-3 py-2 rounded text-sm transition-colors" :class="activeTab === 'butterfly' ? 'text-teal-600 dark:text-teal-400 font-bold bg-teal-50 dark:bg-teal-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'" @click="activeTab = 'butterfly'">Demographics</button>
-            <!--<button class="px-3 py-2 rounded text-sm transition-colors" :class="activeTab === 'linechart' ? 'text-teal-600 dark:text-teal-400 font-bold bg-teal-50 dark:bg-teal-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'" @click="activeTab = 'linechart'">Line Chart</button>-->
             
         
     </div>
 
     <!-- Loading -->
-    <div v-if="loading && activeTab !== 'linechart' && activeTab !== 'waffle' && activeTab !== 'ranking' && activeTab !== 'butterfly'" class="loading-state">
+    <div v-if="loading && activeTab !== 'waffle' && activeTab !== 'ranking' && activeTab !== 'butterfly'" class="loading-state">
       <div class="spinner"></div><p>Processing Data...</p>
     </div>
     <div v-else-if="error" class="error-state">{{ error }}<button @click="fetchData">Retry</button></div>
@@ -694,12 +631,6 @@ const selectDistrict = (id: string) => {
     <!-- BARCHART -->
     <div v-else-if="activeTab === 'barchart'" class="content-state">
         <div id="access-chart" class="chart-container"></div>
-    </div>
-
-    <!-- LINE CHART -->
-    <div v-else-if="activeTab === 'linechart'" class="content-state">
-         <div v-if="lineChartData.length === 0 && loading" class="loading-state"><div class="spinner"></div><p>Loading...</p></div>
-         <div v-else id="line-chart" class="chart-container"></div>
     </div>
 
     <!-- PROPORTIONAL WAFFLE -->
