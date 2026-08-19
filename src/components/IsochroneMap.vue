@@ -439,6 +439,37 @@ const setupIsochronesLayer = (layerId: string) => {
   }
 };
 
+// Builds the admin-boundary fill-color match expression from stats data.
+// Shared by setupAdminLayers (initial layer creation) and the range-only
+// repaint path, so a range change can recolor via setPaintProperty without
+// tearing down and rebuilding the whole layer/source.
+const buildAdminFillColorExpression = (stats: StatsData[] | undefined | null): any => {
+    if (!stats || stats.length === 0) return '#333333';
+
+    const matchExpression: any[] = ['match', ['to-string', ['get', 'id']]];
+
+    stats.forEach((stat: any) => {
+        const val = Number(stat.population_share);
+        let color = ADMIN_COLORS_10[0];
+
+        if (val >= 90) color = ADMIN_COLORS_10[9];
+        else if (val >= 80) color = ADMIN_COLORS_10[8];
+        else if (val >= 70) color = ADMIN_COLORS_10[7];
+        else if (val >= 60) color = ADMIN_COLORS_10[6];
+        else if (val >= 50) color = ADMIN_COLORS_10[5];
+        else if (val >= 40) color = ADMIN_COLORS_10[4];
+        else if (val >= 30) color = ADMIN_COLORS_10[3];
+        else if (val >= 20) color = ADMIN_COLORS_10[2];
+        else if (val >= 10) color = ADMIN_COLORS_10[1];
+        else color = ADMIN_COLORS_10[0];
+
+        matchExpression.push(String(stat.id), color);
+    });
+
+    matchExpression.push('#333333');
+    return matchExpression;
+};
+
 const setupAdminLayers = (layerName: string) => {
     if (!map) return;
       
@@ -447,36 +478,7 @@ const setupAdminLayers = (layerName: string) => {
         ['==', ['get', 'admin_level'], props.adminLevel]
     ];
 
-    // Prepare Color Match Expression from Stats Data
-    let fillColor: any = '#333333'; // Default Dark Grey if no stats
-    
-    // Refined 10-class YlGnBu-like (Reversed: Low=Dark, High=Light)
-    // ADMIN_COLORS_10 imported from config
-
-    if (props.statsData && props.statsData.length > 0) {
-        const matchExpression: any[] = ['match', ['to-string', ['get', 'id']]];
-
-        props.statsData.forEach((stat: any) => {
-            const val = Number(stat.population_share); 
-            let color = ADMIN_COLORS_10[0];
-            
-            if (val >= 90) color = ADMIN_COLORS_10[9];
-            else if (val >= 80) color = ADMIN_COLORS_10[8];
-            else if (val >= 70) color = ADMIN_COLORS_10[7];
-            else if (val >= 60) color = ADMIN_COLORS_10[6];
-            else if (val >= 50) color = ADMIN_COLORS_10[5];
-            else if (val >= 40) color = ADMIN_COLORS_10[4];
-            else if (val >= 30) color = ADMIN_COLORS_10[3];
-            else if (val >= 20) color = ADMIN_COLORS_10[2];
-            else if (val >= 10) color = ADMIN_COLORS_10[1];
-            else color = ADMIN_COLORS_10[0]; 
-            
-            matchExpression.push(String(stat.id), color);
-        });
-        
-        matchExpression.push('#333333'); 
-        fillColor = matchExpression;
-    }
+    const fillColor: any = buildAdminFillColorExpression(props.statsData);
     
     // Fill Layer
     let beforeId: string | undefined = undefined;
@@ -829,11 +831,22 @@ const syncMapData = () => {
     // MapLibre updates feature-state bindings automatically, but we might need to verify if style uses it.
 };
 
-watch(() => [props.country, props.category, props.adminLevel, props.statsData, props.showGlobalIsochrones, props.isGlobalView, props.availableCountries], ([, , , stats]) => {
-  // Update local ref
-  localStats.value = (stats || []) as any[];
-  
+// Structural changes (country/category/scale/global-view toggles) need a full
+// rebuild: different PMTiles sources, different layers.
+watch(() => [props.country, props.category, props.adminLevel, props.showGlobalIsochrones, props.isGlobalView, props.availableCountries], () => {
+  localStats.value = (props.statsData || []) as any[];
   updateMapData();
+});
+
+// A statsData-only change (e.g. the user picked a different range) doesn't
+// need a source/layer rebuild — just recolor the existing admin layer in
+// place. Avoids the visible flicker/re-fetch a full updateMapData() causes.
+watch(() => props.statsData, (stats) => {
+  localStats.value = (stats || []) as any[];
+
+  if (!map || props.adminLevel === 'ADM0' || !map.getLayer('admin-boundaries-fill-layer')) return;
+
+  map.setPaintProperty('admin-boundaries-fill-layer', 'fill-color', buildAdminFillColorExpression(stats));
 }, { deep: true });
 
 // Specific watcher to zoom when country changes
