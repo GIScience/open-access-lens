@@ -197,7 +197,6 @@ onMounted(() => {
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
   
   // DEBUG: Expose map to window for layer order inspection
-  (window as any).debugMap = map;
 
   // Mac-style Trackpad Panning: Map Wheel (2-finger scroll) to Pan
       map.on('load', () => {
@@ -631,7 +630,6 @@ const updateMapData = () => {
       
       // Handle Global Isochrones
       if (props.showGlobalIsochrones && props.availableCountries) {
-          console.log(`[MapCanvas] Loading Global Isochrones for ${props.availableCountries.length} countries...`);
           
           if (map.getLayer('global-boundaries-line')) {
               map.setPaintProperty('global-boundaries-fill', 'fill-opacity', 0.); 
@@ -663,11 +661,9 @@ const updateMapData = () => {
           (async () => {
               // Check if we are still the latest update
               if (myUpdateId !== currentUpdateId.value) {
-                  console.log('[MapCanvas] Aborting stale global loading', myUpdateId);
                   return;
               }
 
-              console.time('GlobalIsochronesLoad');
               const promises = props.availableCountries!.map(async (c) => {
                   if (myUpdateId !== currentUpdateId.value) return;
 
@@ -719,7 +715,6 @@ const updateMapData = () => {
               
               await Promise.all(promises);
               if (myUpdateId === currentUpdateId.value) {
-                   console.timeEnd('GlobalIsochronesLoad');
               }
           })();
 

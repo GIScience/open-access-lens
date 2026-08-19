@@ -30,28 +30,8 @@ const selectedPopulationType = ref('total');
 const selectedRange = ref(5000); // Default
 
 const chartData = ref<any[]>([]);
-// 1. Checks system preference. Default to Dark if undefined or not strictly light.
-// const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-// const isDarkMode = ref(!prefersLight);
 
-// 2. Single source of truth function
-// const applyTheme = (dark: boolean) => {
-//     if (dark) {
-//         document.documentElement.classList.add('dark');
-//     } else {
-//         document.documentElement.classList.remove('dark');
-//     }
-// };
-
-// const toggleTheme = () => { 
-//     isDarkMode.value = !isDarkMode.value;
-// };
-
-// 3. Watcher ensures UI and DOM are always in sync (cleaner than putting logic in toggle function)
-// watch(isDarkMode, (newVal) => {
-//     applyTheme(newVal);
-// }, { immediate: true });
-// Ensure Light Mode
+// App is light-mode only
 document.documentElement.classList.remove('dark');
 
 // --- Constants ---
@@ -119,9 +99,6 @@ const fetchCountries = async () => {
           if (!val) return false;
           
           if (code === 'RUS' || code === 'USA' || code === 'FRA') {
-              console.log(`Checking ${code}:`, val);
-              console.log(`Region Array? ${Array.isArray(val.region)}`);
-              console.log(`Region Value: ${val.region}`);
           }
           // 1. Handle Array Regions (e.g., USA: ['north-america', 'north-america/us'])
           if (Array.isArray(val.region)) {
@@ -202,7 +179,6 @@ watch(selectedCountry, (newVal) => {
         if (viewMode.value === 'HOME') {
             // 1. Start Sidebar Transition
             viewMode.value = 'DASHBOARD'; 
-            viewMode.value = 'DASHBOARD'; 
             // 2. Trigger Map Update immediately (Parallel Animation)
             mapCountry.value = newVal;
         } else {
@@ -235,10 +211,6 @@ const goHome = () => {
     router.push('/');
 };
 
-// Called when MapCanvas finishes its automated zoom to the country
-const onMapMoveEnd = () => {
-    // No-op now, handled by timing
-};
 
 const handleDataUpdate = (data: any[]) => {
     chartData.value = data;
@@ -265,7 +237,6 @@ const handleDistrictSelection = (id: string) => {
     selectedDistrict.value = id;
     
     // Future: Trigger Zoom if we have bounds (Requires Geometry or Tile Query)
-    console.log("Ranking Clicked - Switched to ADM1. District ID:", id);
 };
 
 const handleClickOutside = (event: MouseEvent) => {
@@ -444,16 +415,6 @@ const year = new Date().getFullYear();
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                                 </button>
-
-                                <!-- Theme Toggle (Removed) -->
-                                <!-- <button 
-                                    @click="toggleTheme" 
-                                    class="h-[38px] w-[38px] flex-none flex items-center justify-center bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
-                                    title="Toggle Theme"
-                                >
-                                    <span v-if="isDarkMode">☀️</span>
-                                    <span v-else>🌙</span>
-                                </button> -->
                             </div>
 
                         </div>
@@ -475,7 +436,6 @@ const year = new Date().getFullYear();
                       :show-global-isochrones="isGlobalIsochrones"
                       :available-countries="countries"
                       @select-country="selectCountry"
-                      @map-move-end="onMapMoveEnd"
                     />
             </div>
         </div>
