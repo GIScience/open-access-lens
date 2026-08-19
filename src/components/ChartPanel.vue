@@ -4,7 +4,7 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 import duckdb_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
 import Plotly from 'plotly.js-dist';
-import { STORAGE_BASE_URL, HDX_BASE_URL } from '../config';
+import { STORAGE_BASE_URL, HDX_BASE_URL, RANGE_OPTIONS } from '../config';
 
 const props = defineProps<{
   country: string;
@@ -378,25 +378,7 @@ watch(proxySelectedRange, () => {
     if (activeTab.value === 'ranking') fetchRankingData();
 });
 
-const displayRanges = computed(() => {
-    if (props.category === 'education') {
-        return [
-            { label: '5 km', value: 5000 },
-            { label: '10 km', value: 10000 },
-            { label: '20 km', value: 20000 },
-            { label: '30 km', value: 30000 },
-            { label: '50 km', value: 50000 },
-        ];
-    } else {
-        return [
-            { label: '10 min', value: 600 },
-            { label: '30 min', value: 1800 },
-            { label: '60 min', value: 3600 },
-            { label: '90 min', value: 5400 },
-            { label: '120 min', value: 7200 }
-        ];
-    }
-});
+const displayRanges = computed(() => RANGE_OPTIONS[props.category === 'education' ? 'education' : 'health']);
 
 const rawDemographics = computed(() => {
     const data = lineChartData.value;

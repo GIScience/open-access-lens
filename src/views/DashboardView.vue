@@ -6,7 +6,7 @@ import AppHeader from '../components/AppHeader.vue';
 import ChartPanel from '../components/ChartPanel.vue';
 import AboutModal from '../components/AboutModal.vue';
 import yaml from 'js-yaml';
-import { COUNTRIES_URL } from '../config';
+import { COUNTRIES_URL, RANGE_OPTIONS } from '../config';
 
 // Router setup
 const route = useRoute();
@@ -50,29 +50,7 @@ const adminLevels = [
 
 
 // --- Computed ---
-const ranges = computed(() => {
-  if (selectedCategory.value === 'education') {
-    return [
-      { value: 5000, label: '5 km' },
-      { value: 10000, label: '10 km' },
-      { value: 20000, label: '20 km' },
-      { value: 30000, label: '30 km' },
-      { value: 45000, label: '45 km' }
-    ];
-  } else {
-    return [
-      { value: 600, label: '10 min' },
-      { value: 1200, label: '20 min' },
-      { value: 1800, label: '30 min' },
-      { value: 2400, label: '40 min' },
-      { value: 3600, label: '60 min' },
-      { value: 5400, label: '90 min' },
-      { value: 6000, label: '100 min' },
-      { value: 6600, label: '110 min' },
-      { value: 7200, label: '120 min' }
-    ];
-  }
-});
+const ranges = computed(() => RANGE_OPTIONS[selectedCategory.value === 'education' ? 'education' : 'health']);
 
 const filteredCountries = computed(() => {
   if (!searchQuery.value) return countries.value;
