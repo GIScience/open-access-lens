@@ -147,6 +147,12 @@ const fetchCountries = async () => {
 // --- View Mode Logic ---
 const viewMode = ref<'HOME' | 'DASHBOARD'>('HOME');
 const isGlobalIsochrones = ref(false); // Added missing ref
+// ChartPanel's mount is heavy (DuckDB-WASM worker init + Plotly), and doing
+// that work while the sidebar's CSS width transition is still animating
+// starves the main thread right when the map canvas needs to repaint after
+// its resize, causing a black flash. So its mount is delayed the same
+// duration-700-plus-buffer as IsochroneMap's post-transition rebuild.
+const showChartPanel = ref(false);
 
 
 // Watch selectedCountry to handle back navigation (DASHBOARD -> HOME)
@@ -159,6 +165,11 @@ watch(selectedCountry, (newVal) => {
             viewMode.value = 'DASHBOARD'; 
             // 2. Trigger Map Update immediately (Parallel Animation)
             mapCountry.value = newVal;
+            // 3. Delay ChartPanel's heavy mount until the pane transition
+            // has settled - see showChartPanel's declaration for why.
+            setTimeout(() => {
+                showChartPanel.value = true;
+            }, 750);
         } else {
             // Already in dashboard, switch immediately
             mapCountry.value = newVal;
@@ -167,6 +178,7 @@ watch(selectedCountry, (newVal) => {
         // CLEARING / HOME
         viewMode.value = 'HOME';
         mapCountry.value = ''; // Reset immediately
+        showChartPanel.value = false;
     }
 });
 
@@ -436,7 +448,7 @@ const year = new Date().getFullYear();
         >
              <div class="flex-1 overflow-hidden p-4 h-full min-w-[320px]">
                  <ChartPanel 
-                  v-if="viewMode === 'DASHBOARD'"
+                  v-if="showChartPanel"
                   :country="selectedCountry" 
                   :country-name="selectedCountryLabel"
                   :category="selectedCategory" 

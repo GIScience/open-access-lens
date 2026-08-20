@@ -50,6 +50,10 @@ const mapContainer = ref<HTMLElement | null>(null);
 let map: maplibregl.Map | null = null;
 let protocol: Protocol | null = null;
 const isLegendExpanded = ref(true);
+// True while the global<->local pane-width transition is settling (see the
+// isGlobalView watcher below). Blocks the structural-change watcher's
+// immediate updateMapData() from racing the delayed, properly-resized one.
+const isViewTransitioning = ref(false);
 
 const localStats = ref<any[]>([]);
 const currentAdminLayerName = ref<string>('');
@@ -228,6 +232,11 @@ onMounted(() => {
 watch(() => props.isGlobalView, (isGlobal) => {
     if (!map) return;
 
+    // Block the structural-change watcher below (it also depends on
+    // isGlobalView/country) from firing its own immediate updateMapData()
+    // against a canvas that's still mid pane-width transition.
+    isViewTransitioning.value = true;
+
     setTimeout(() => {
         if (!map) return;
 
@@ -236,6 +245,7 @@ watch(() => props.isGlobalView, (isGlobal) => {
         map.resize();
 
         updateMapData();
+        isViewTransitioning.value = false;
 
         if (isGlobal) {
             // Since the map is full-width again, this centers perfectly.
@@ -839,6 +849,7 @@ const syncMapData = () => {
 // Structural changes (country/category/scale/global-view toggles) need a full
 // rebuild: different PMTiles sources, different layers.
 watch(() => [props.country, props.category, props.adminLevel, props.showGlobalIsochrones, props.isGlobalView, props.availableCountries], () => {
+  if (isViewTransitioning.value) return;
   localStats.value = (props.statsData || []) as any[];
   updateMapData();
 });
@@ -912,6 +923,17 @@ onUpdated(() => {
 
 <template>
   <div ref="mapContainer" class="map-container relative">
+    <!-- Cross-fades over the canvas during the global<->local pane-width
+    transition. MapLibre's ResizeObserver-driven map.resize() clears the
+    WebGL drawing buffer on every layout tick of that CSS transition, and
+    the repaint can't keep up, producing a black flash - this masks it
+    rather than chasing the underlying resize/repaint race. -->
+    <div
+        class="absolute inset-0 z-40 flex items-center justify-center bg-slate-100 dark:bg-slate-900 transition-opacity duration-150 ease-in-out pointer-events-none"
+        :class="isViewTransitioning ? 'opacity-100' : 'opacity-0'"
+    >
+        <div class="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
     <div v-if="!isGlobalView || (isGlobalView && showGlobalIsochrones)" class="legend-overlay bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 p-3 rounded shadow-lg text-slate-900 dark:text-slate-200 text-xs transition-all duration-300" 
          :class="{ 'w-auto': isLegendExpanded, 'w-auto h-auto p-2 flex items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800': !isLegendExpanded }">
         
