@@ -209,13 +209,14 @@ onMounted(() => {
       // Ensure data is loaded initially
       updateMapData();
 
-      // Resize Observer for smooth container transitions
-      const resizeObserver = new ResizeObserver(() => {
-          map?.resize();
-      });
-      if (mapContainer.value) {
-          resizeObserver.observe(mapContainer.value);
-      }
+      // No manual ResizeObserver here: MapLibre already runs its own,
+      // internally debounced (~50ms) one by default (trackResize, on
+      // unless explicitly disabled). A second, un-throttled observer
+      // calling map.resize() synchronously on every raw layout tick here
+      // was fighting the library's own debounced one on the same
+      // container - two resize handlers racing on the same canvas is what
+      // caused the black flicker on both plain browser-window resize and
+      // the pane-width transition.
   });
 
 // Watch Global View changes (for transitions)

@@ -162,6 +162,15 @@ const isGlobalIsochrones = ref(false); // Added missing ref
 // its resize, causing a black flash. So its mount is delayed the same
 // duration-700-plus-buffer as IsochroneMap's post-transition rebuild.
 const showChartPanel = ref(false);
+// The panes' width transition classes are only applied while this is true.
+// They used to be unconditional (transition-[width] duration-700 on the
+// pane divs at all times), which meant an ordinary browser-window resize
+// - not just the HOME<->DASHBOARD toggle - also animated the map pane's
+// width over 700ms with easing, so the container's real size trailed the
+// window on a lagging curve during a live drag instead of snapping to it,
+// making resizes feel rough/stuttery. Now the transition classes only
+// exist for the brief, deliberate toggle window.
+const isPaneAnimating = ref(false);
 
 
 // Watch selectedCountry to handle back navigation (DASHBOARD -> HOME)
@@ -171,6 +180,7 @@ watch(selectedCountry, (newVal) => {
         // SELECTING A COUNTRY
         if (viewMode.value === 'HOME') {
             // 1. Start Sidebar Transition
+            isPaneAnimating.value = true;
             viewMode.value = 'DASHBOARD'; 
             // 2. Trigger Map Update immediately (Parallel Animation)
             mapCountry.value = newVal;
@@ -182,6 +192,7 @@ watch(selectedCountry, (newVal) => {
             // has settled - see showChartPanel's declaration for why.
             setTimeout(() => {
                 showChartPanel.value = true;
+                isPaneAnimating.value = false;
             }, 750);
         } else {
             // Already in dashboard, switch immediately
@@ -189,9 +200,13 @@ watch(selectedCountry, (newVal) => {
         }
     } else {
         // CLEARING / HOME
+        isPaneAnimating.value = true;
         viewMode.value = 'HOME';
         mapCountry.value = ''; // Reset immediately
         showChartPanel.value = false;
+        setTimeout(() => {
+            isPaneAnimating.value = false;
+        }, 750);
     }
 });
 
@@ -325,8 +340,8 @@ const year = new Date().getFullYear();
 
         <!-- LEFT PANE: MAP & CONTROLS (Transitions width: 100% -> 50%) -->
         <div 
-            class="relative h-full flex flex-col transition-[width] duration-700 ease-in-out border-r border-slate-200 dark:border-slate-800"
-            :class="viewMode === 'HOME' ? 'w-full' : 'w-full md:w-1/2'"
+            class="relative h-full flex flex-col border-r border-slate-200 dark:border-slate-800"
+            :class="[isPaneAnimating ? 'transition-[width] duration-700 ease-in-out' : '', viewMode === 'HOME' ? 'w-full' : 'w-full md:w-1/2']"
         >
             <!-- 1. HEADER (Now Relative, no overlap) -->
             <div class="w-full z-20 pointer-events-auto bg-white dark:bg-slate-950 relative shadow-sm">
@@ -457,8 +472,8 @@ const year = new Date().getFullYear();
 
         <!-- RIGHT PANE: CHART PANEL (Transitions width: 0% -> 50%) -->
         <div 
-            class="relative h-full flex flex-col bg-white dark:bg-slate-950 overflow-hidden transition-[width] duration-700 ease-in-out"
-            :class="viewMode === 'HOME' ? 'w-0' : 'w-full md:w-1/2'"
+            class="relative h-full flex flex-col bg-white dark:bg-slate-950 overflow-hidden"
+            :class="[isPaneAnimating ? 'transition-[width] duration-700 ease-in-out' : '', viewMode === 'HOME' ? 'w-0' : 'w-full md:w-1/2']"
         >
              <div class="flex-1 overflow-hidden p-4 h-full min-w-[320px]">
                  <ChartPanel 
