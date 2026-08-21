@@ -58,22 +58,3 @@ export const ISOCHRONE_COLORS_HEALTH = [
     '#482173',
     '#440154'
 ];
-
-// Helper to generate fill-color steps for MapLibre
-export const getIsochroneSteps = (category: string, isHidden: (label: string) => boolean) => {
-    let steps: any[] = ['step', ['to-number', ['get', 'range']]];
-
-    if (category === 'education') {
-        const labels = ['5 km', '10 km', '15 km', '20 km', '25 km', '30 km', '35 km', '40 km', '45 km', '50 km'];
-        const values = [5001, 10001, 15001, 20001, 25001, 30001, 35001, 40001, 45001];
-
-        steps.push(isHidden(labels[0]!) ? 'rgba(0,0,0,0)' : ISOCHRONE_COLORS_EDUCATION[0]);
-        for (let i = 0; i < values.length; i++) {
-            steps.push(values[i]);
-            steps.push(isHidden(labels[i + 1]!) ? 'rgba(0,0,0,0)' : ISOCHRONE_COLORS_EDUCATION[i + 1]);
-        }
-    } else {
-        // Health logic simplified for now - manual steps used in MapCanvas
-    }
-    return steps;
-};
