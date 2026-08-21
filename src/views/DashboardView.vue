@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import IsochroneMap from '../components/IsochroneMap.vue';
 import AppHeader from '../components/AppHeader.vue';
-import ChartPanel from '../components/ChartPanel.vue';
 import AboutModal from '../components/AboutModal.vue';
 import yaml from 'js-yaml';
 import { COUNTRIES_URL, RANGE_OPTIONS } from '../config';
+
+// ChartPanel pulls in Plotly + DuckDB-WASM's JS glue + Apache Arrow, which
+// together dwarf the rest of the app bundle - a static import would ship
+// all of that to every visitor, including ones who never pick a country.
+// Loaded dynamically instead; loadChartPanel() below kicks the fetch off
+// as soon as a country is selected (in parallel with the transition delay
+// this same component's mount is already held behind - see showChartPanel)
+// so the chunk is normally already resolved by the time it's needed.
+const ChartPanel = defineAsyncComponent(() => import('../components/ChartPanel.vue'));
+const loadChartPanel = () => import('../components/ChartPanel.vue');
 
 // Router setup
 const route = useRoute();
@@ -165,7 +174,11 @@ watch(selectedCountry, (newVal) => {
             viewMode.value = 'DASHBOARD'; 
             // 2. Trigger Map Update immediately (Parallel Animation)
             mapCountry.value = newVal;
-            // 3. Delay ChartPanel's heavy mount until the pane transition
+            // 3. Kick off ChartPanel's chunk fetch now, in parallel with the
+            // transition, so it's normally already resolved by the time
+            // showChartPanel flips true and actually mounts it below.
+            loadChartPanel();
+            // 4. Delay ChartPanel's heavy mount until the pane transition
             // has settled - see showChartPanel's declaration for why.
             setTimeout(() => {
                 showChartPanel.value = true;
