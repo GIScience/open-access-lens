@@ -4,7 +4,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol, PMTiles } from 'pmtiles';
 import heigitLogo from '../assets/HeiGIT_Logo_compact.svg';
-import { TILES_BASE_URL, BASEMAP_STYLE, ADMIN_COLORS_10, ISOCHRONE_COLORS_EDUCATION, ISOCHRONE_COLORS_HEALTH } from '../config';
+import { TILES_BASE_URL, BASEMAP_STYLE, ADMIN_COLORS_10, buildIsochroneColorSteps, getIsochroneLegendItems, buildAdminColorSteps, getAdminLegendItems } from '../config';
 import { getBbox } from '../utils';
 import type { StatsData, CountryOption } from '../types';
 
@@ -84,37 +84,8 @@ const updateLayerColors = () => {
     if (!map) return;
 
     // 1. Isochrones (ADM0 & Global)
-    // Common step logic
-    let steps: any[] = [];
     const isHidden = (lbl: string) => hiddenLegendLabels.value.has(lbl);
-
-    if (props.category === 'education') {
-            steps = ['step', ['to-number', ['get', 'range']]];
-            steps.push(isHidden('5 km') ? 'rgba(0,0,0,0)' : '#fde725');
-            steps.push(5001); steps.push(isHidden('10 km') ? 'rgba(0,0,0,0)' : '#b5de2b');
-            steps.push(10001); steps.push(isHidden('15 km') ? 'rgba(0,0,0,0)' : '#6ece58');
-            steps.push(15001); steps.push(isHidden('20 km') ? 'rgba(0,0,0,0)' : '#35b779');
-            steps.push(20001); steps.push(isHidden('25 km') ? 'rgba(0,0,0,0)' : '#1f9e89');
-            steps.push(25001); steps.push(isHidden('30 km') ? 'rgba(0,0,0,0)' : '#26828e');
-            steps.push(30001); steps.push(isHidden('35 km') ? 'rgba(0,0,0,0)' : '#31688e');
-            steps.push(35001); steps.push(isHidden('40 km') ? 'rgba(0,0,0,0)' : '#3e4989');
-            steps.push(40001); steps.push(isHidden('45 km') ? 'rgba(0,0,0,0)' : '#482878');
-            steps.push(45001); steps.push(isHidden('50 km') ? 'rgba(0,0,0,0)' : '#440154');
-    } else {
-            steps = ['step', ['to-number', ['get', 'range']]];
-            steps.push(isHidden('10 min') ? 'rgba(0,0,0,0)' : '#fde725');
-            steps.push(601); steps.push(isHidden('20 min') ? 'rgba(0,0,0,0)' : '#c2df23');
-            steps.push(1201); steps.push(isHidden('30 min') ? 'rgba(0,0,0,0)' : '#86d549');
-            steps.push(1801); steps.push(isHidden('40 min') ? 'rgba(0,0,0,0)' : '#52c569');
-            steps.push(2401); steps.push(isHidden('50 min') ? 'rgba(0,0,0,0)' : '#2ab07f');
-            steps.push(3001); steps.push(isHidden('60 min') ? 'rgba(0,0,0,0)' : '#1e9b8a');
-            steps.push(3601); steps.push(isHidden('70 min') ? 'rgba(0,0,0,0)' : '#25858e');
-            steps.push(4201); steps.push(isHidden('80 min') ? 'rgba(0,0,0,0)' : '#2d708e');
-            steps.push(4801); steps.push(isHidden('90 min') ? 'rgba(0,0,0,0)' : '#38588c');
-            steps.push(5401); steps.push(isHidden('100 min') ? 'rgba(0,0,0,0)' : '#433e85');
-            steps.push(6001); steps.push(isHidden('110 min') ? 'rgba(0,0,0,0)' : '#482173');
-            steps.push(6601); steps.push(isHidden('120 min') ? 'rgba(0,0,0,0)' : '#440154');
-    }
+    const steps = buildIsochroneColorSteps(props.category, isHidden);
 
     if (props.adminLevel === 'ADM0') {
         if (map.getLayer('isochrones-layer')) {
@@ -136,20 +107,8 @@ const updateLayerColors = () => {
 
     // 2. Admin Boundaries
     if (props.adminLevel !== 'ADM0' && map.getLayer('admin-boundaries-fill-layer')) {
-         const isHidden = (lbl: string) => hiddenLegendLabels.value.has(lbl);
-         let steps: any[] = ['step', ['feature-state', 'population_share']];
-         steps.push(isHidden('0 - 10%') ? 'rgba(0,0,0,0)' : '#020b2e');
-         steps.push(10); steps.push(isHidden('10 - 20%') ? 'rgba(0,0,0,0)' : '#081d58');
-         steps.push(20); steps.push(isHidden('20 - 30%') ? 'rgba(0,0,0,0)' : '#253494');
-         steps.push(30); steps.push(isHidden('30 - 40%') ? 'rgba(0,0,0,0)' : '#225ea8');
-         steps.push(40); steps.push(isHidden('40 - 50%') ? 'rgba(0,0,0,0)' : '#1d91c0');
-         steps.push(50); steps.push(isHidden('50 - 60%') ? 'rgba(0,0,0,0)' : '#41b6c4');
-         steps.push(60); steps.push(isHidden('60 - 70%') ? 'rgba(0,0,0,0)' : '#7fcdbb');
-         steps.push(70); steps.push(isHidden('70 - 80%') ? 'rgba(0,0,0,0)' : '#c7e9b4');
-         steps.push(80); steps.push(isHidden('80 - 90%') ? 'rgba(0,0,0,0)' : '#edf8b1');
-         steps.push(90); steps.push(isHidden('90 - 100%') ? 'rgba(0,0,0,0)' : '#ffffd9');
-         
-         map.setPaintProperty('admin-boundaries-fill-layer', 'fill-color', steps as any);
+         const adminSteps = buildAdminColorSteps(isHidden);
+         map.setPaintProperty('admin-boundaries-fill-layer', 'fill-color', adminSteps as any);
     }
 };
 
@@ -395,42 +354,7 @@ const setupIsochronesLayer = (layerId: string) => {
   if (!map) return;
   
   // Dynamic Coloring based on Category
-  // Dynamic Coloring based on Category
-  let steps: any[] = [];
-  if (props.category === 'education') {
-       steps = [
-          'step',
-          ['to-number', ['get', 'range']],
-          ISOCHRONE_COLORS_EDUCATION[0],       // 0 - 5000 -> Yellow
-          //1, '#fde725',
-          5001, ISOCHRONE_COLORS_EDUCATION[1], // 5001 - 10000
-          10001, ISOCHRONE_COLORS_EDUCATION[2],
-          15001, ISOCHRONE_COLORS_EDUCATION[3],
-          20001, ISOCHRONE_COLORS_EDUCATION[4], 
-          25001, ISOCHRONE_COLORS_EDUCATION[5],
-          30001, ISOCHRONE_COLORS_EDUCATION[6],
-          35001, ISOCHRONE_COLORS_EDUCATION[7],
-          40001, ISOCHRONE_COLORS_EDUCATION[8],
-          45001, ISOCHRONE_COLORS_EDUCATION[9]
-      ];
-  } else {
-       steps = [
-          'step',
-          ['to-number', ['get', 'range']],
-          ISOCHRONE_COLORS_HEALTH[0], 
-          601, ISOCHRONE_COLORS_HEALTH[1], 
-          1201, ISOCHRONE_COLORS_HEALTH[2], 
-          1801, ISOCHRONE_COLORS_HEALTH[3], 
-          2401, ISOCHRONE_COLORS_HEALTH[4], 
-          3001, ISOCHRONE_COLORS_HEALTH[5], 
-          3601, ISOCHRONE_COLORS_HEALTH[6], 
-          4201, ISOCHRONE_COLORS_HEALTH[7], 
-          4801, ISOCHRONE_COLORS_HEALTH[8], 
-          5401, ISOCHRONE_COLORS_HEALTH[9], 
-          6001, ISOCHRONE_COLORS_HEALTH[10], 
-          6601, ISOCHRONE_COLORS_HEALTH[11] 
-      ];
-  }
+  const steps = buildIsochroneColorSteps(props.category);
 
   // Add Isochrones Layer - ONLY IF Admin Level is ADM0 (Country)
   if (props.adminLevel === 'ADM0') {
@@ -702,16 +626,7 @@ const updateMapData = () => {
                       });
 
                       // Standard Isochrone Color Steps
-                      let steps: any[] = [];
-                      if (props.category === 'education') {
-                          steps = ['step', ['to-number', ['get', 'range']],
-                              '#fde725', 5001, '#b5de2b', 10001, '#6ece58', 15001, '#35b779', 20001, '#1f9e89', 25001, '#26828e', 30001, '#31688e', 35001, '#3e4989', 40001, '#482878', 45001, '#440154'
-                          ];
-                      } else {
-                          steps = ['step', ['to-number', ['get', 'range']],
-                              '#fde725', 601, '#c2df23', 1201, '#86d549', 1801, '#52c569', 2401, '#2ab07f', 3001, '#1e9b8a', 3601, '#25858e', 4201, '#2d708e', 4801, '#38588c', 5401, '#433e85', 6001, '#482173', 6601, '#440154'
-                          ];
-                      }
+                      const steps = buildIsochroneColorSteps(props.category);
 
                       map?.addLayer({
                           id: layerId,
@@ -872,50 +787,9 @@ watch(() => props.statsData, (stats) => {
 import { onUpdated, computed } from 'vue';
 
 // Legend Data
-const isochroneLegendItems = computed(() => {
-    if (props.category === 'education') {
-        return [
-            { color: '#fde725', label: '5 km' },
-            { color: '#b5de2b', label: '10 km' },
-            { color: '#6ece58', label: '15 km' },
-            { color: '#35b779', label: '20 km' },
-            { color: '#1f9e89', label: '25 km' },
-            { color: '#26828e', label: '30 km' },
-            { color: '#31688e', label: '35 km' },
-            { color: '#3e4989', label: '40 km' },
-            { color: '#482878', label: '45 km' },
-            { color: '#440154', label: '50 km' },
-        ];
-    } else {
-        return [
-            { color: '#fde725', label: '10 min' },
-            { color: '#c2df23', label: '20 min' },
-            { color: '#86d549', label: '30 min' },
-            { color: '#52c569', label: '40 min' },
-            { color: '#2ab07f', label: '50 min' },
-            { color: '#1e9b8a', label: '60 min' },
-            { color: '#25858e', label: '70 min' },
-            { color: '#2d708e', label: '80 min' },
-            { color: '#38588c', label: '90 min' },
-            { color: '#433e85', label: '100 min' },
-            { color: '#482173', label: '110 min' },
-            { color: '#440154', label: '120 min' },
-        ];
-    }
-});
+const isochroneLegendItems = computed(() => getIsochroneLegendItems(props.category));
 
-const adminLegendItems = [
-    { color: '#ffffd9', label: '90 - 100%' },
-    { color: '#edf8b1', label: '80 - 90%' },
-    { color: '#c7e9b4', label: '70 - 80%' },
-    { color: '#7fcdbb', label: '60 - 70%' },
-    { color: '#41b6c4', label: '50 - 60%' },
-    { color: '#1d91c0', label: '40 - 50%' },
-    { color: '#225ea8', label: '30 - 40%' },
-    { color: '#253494', label: '20 - 30%' },
-    { color: '#081d58', label: '10 - 20%' },
-    { color: '#020b2e', label: '0 - 10%' },
-];
+const adminLegendItems = getAdminLegendItems();
 
 onUpdated(() => {
 

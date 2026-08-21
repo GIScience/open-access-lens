@@ -58,3 +58,58 @@ export const ISOCHRONE_COLORS_HEALTH = [
     '#482173',
     '#440154'
 ];
+
+// Builds the MapLibre 'step' fill-color expression for an isochrone layer,
+// keyed on the feature's 'range' property. The single source of truth for
+// isochrone step breakpoints + colors - this used to be hand-copied in
+// three places in IsochroneMap.vue (each rebuild, each with its own
+// hardcoded hex list and breakpoint values, free to drift from each other).
+// `isHidden` makes a step transparent instead of colored, for the legend's
+// click-to-toggle-visibility feature; omit it for a plain, fully-visible
+// scale.
+export const buildIsochroneColorSteps = (category: string, isHidden: (label: string) => boolean = () => false) => {
+    const colors = category === 'education' ? ISOCHRONE_COLORS_EDUCATION : ISOCHRONE_COLORS_HEALTH;
+    const ranges = category === 'education' ? RANGE_OPTIONS.education : RANGE_OPTIONS.health;
+    const steps: any[] = ['step', ['to-number', ['get', 'range']]];
+    steps.push(isHidden(ranges[0]!.label) ? 'rgba(0,0,0,0)' : colors[0]);
+    for (let i = 1; i < ranges.length; i++) {
+        steps.push(ranges[i - 1]!.value + 1);
+        steps.push(isHidden(ranges[i]!.label) ? 'rgba(0,0,0,0)' : colors[i]);
+    }
+    return steps;
+};
+
+// Legend entries for an isochrone category, derived from the same colors +
+// ranges buildIsochroneColorSteps uses, so the legend can never drift from
+// what's actually painted on the map.
+export const getIsochroneLegendItems = (category: string) => {
+    const colors = category === 'education' ? ISOCHRONE_COLORS_EDUCATION : ISOCHRONE_COLORS_HEALTH;
+    const ranges = category === 'education' ? RANGE_OPTIONS.education : RANGE_OPTIONS.health;
+    return ranges.map((r, i) => ({ color: colors[i]!, label: r.label }));
+};
+
+const adminBucketLabel = (i: number) => `${i * 10} - ${i * 10 + 10}%`;
+
+// Builds the MapLibre 'step' fill-color expression for the admin-boundary
+// choropleth layer, keyed on the 'population_share' feature-state. Same
+// duplication problem as the isochrone steps above - was hand-copied
+// alongside a separately hand-typed legend items list.
+export const buildAdminColorSteps = (isHidden: (label: string) => boolean = () => false) => {
+    const steps: any[] = ['step', ['feature-state', 'population_share']];
+    steps.push(isHidden(adminBucketLabel(0)) ? 'rgba(0,0,0,0)' : ADMIN_COLORS_10[0]);
+    for (let i = 1; i < 10; i++) {
+        steps.push(i * 10);
+        steps.push(isHidden(adminBucketLabel(i)) ? 'rgba(0,0,0,0)' : ADMIN_COLORS_10[i]);
+    }
+    return steps;
+};
+
+// Legend entries for the admin choropleth, highest bucket first (matches
+// the order the legend is displayed in) - derived from the same colors
+// buildAdminColorSteps uses.
+export const getAdminLegendItems = () => {
+    return Array.from({ length: 10 }, (_, i) => {
+        const bucket = 9 - i;
+        return { color: ADMIN_COLORS_10[bucket]!, label: adminBucketLabel(bucket) };
+    });
+};
