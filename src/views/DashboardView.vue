@@ -329,6 +329,7 @@ const year = new Date().getFullYear();
                             @select-country="selectCountry"
                             @update:selected-category="selectedCategory = $event"
                             @update:is-global-isochrones="isGlobalIsochrones = $event"
+                            @open-about="isAboutOpen = true"
                         />
                     </div>
                  </transition>

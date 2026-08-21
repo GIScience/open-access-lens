@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import AboutModal from './AboutModal.vue';
 
 
 const props = defineProps<{
@@ -14,21 +13,17 @@ const emit = defineEmits<{
   (e: 'select-country', value: string): void;
   (e: 'update:selectedCategory', value: string): void;
   (e: 'update:isGlobalIsochrones', value: boolean): void;
+  (e: 'open-about'): void;
 }>();
 
 const isDropdownOpen = ref(false);
 const searchQuery = ref('');
 const isCollapsed = ref(false); // New State
-const isAboutOpen = ref(false);
 
 const filteredCountries = computed(() => {
     if (!searchQuery.value) return props.countries;
     const q = searchQuery.value.toLowerCase();
     return props.countries.filter(c => c.label.toLowerCase().includes(q));
-});
-
-const selectedCountryLabel = computed(() => {
-    return 'Select a Country';
 });
 
 const toggleDropdown = () => {
@@ -73,7 +68,7 @@ const toggleCollapse = () => {
             <!-- Right Controls (Absolute) -->
             <div class="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-4 z-10">
                  <!-- About Link -->
-                 <a href="#" @click.prevent="isAboutOpen = true" class="text-sm font-medium text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-colors mr-2">About</a>
+                 <a href="#" @click.prevent="emit('open-about')" class="text-sm font-medium text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-colors mr-2">About</a>
 
                 <button @click="toggleCollapse" class="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
                     <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
@@ -92,7 +87,7 @@ const toggleCollapse = () => {
                         @click="toggleDropdown"
                         class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 rounded-md px-3 py-2 text-sm cursor-pointer flex justify-between items-center text-slate-700 dark:text-slate-200 shadow-sm"
                     >
-                        <span class="truncate">{{ selectedCountryLabel }}</span>
+                        <span class="truncate">Select a Country</span>
                         <span class="text-slate-500 text-xs">▼</span>
                     </div>
 
@@ -151,6 +146,4 @@ const toggleCollapse = () => {
             </div>
         </div>
     </div>
-
-    <AboutModal v-if="isAboutOpen" @close="isAboutOpen = false" />
 </template>
