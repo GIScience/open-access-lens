@@ -15,6 +15,16 @@ const props = defineProps<{
   selectedRange?: number;
 }>();
 
+// Maps the population-type filter (UI value) to the column value used in
+// the Parquet data. Was duplicated verbatim in fetchData and
+// fetchRankingData - single source of truth now.
+const POP_TYPE_MAP: Record<string, string> = {
+    'total': 'total', 'children': 'school_age',
+    'women_of_reproductive_age': 'women_childbearing', 'elderly': 'elderly',
+    'adults': 'adults', 'youth': 'adults', 'under_5': 'under_5',
+    'female': 'total', 'male': 'total'
+};
+
 const emit = defineEmits<{
   (e: 'data-updated', data: any[]): void;
   (e: 'district-selected', id: string): void;
@@ -83,13 +93,7 @@ const fetchData = async () => {
         currentFileUrl = await getFileUrl();
         
         // 1. Fetch Main Data (for Bar Chart)
-        const popTypeMap: Record<string, string> = {
-            'total': 'total', 'children': 'school_age', 
-            'women_of_reproductive_age': 'women_childbearing', 'elderly': 'elderly',
-            'adults': 'adults', 'youth': 'adults', 'under_5': 'under_5',
-            'female': 'total', 'male': 'total'
-        };
-        const targetType = popTypeMap[props.populationType] || 'total';
+        const targetType = POP_TYPE_MAP[props.populationType] || 'total';
         const whereClause = `admin_level = '${props.adminLevel}' AND population_type = '${targetType}'`;
         
         const query = `SELECT * FROM '${currentFileUrl}' WHERE ${whereClause} LIMIT 10000;`;
@@ -229,13 +233,7 @@ const fetchRankingData = async () => {
      if (!conn || !currentFileUrl) return; 
     try {
         const rangeVal = Math.round(props.selectedRange || 0); 
-        const popTypeMap: Record<string, string> = {
-            'total': 'total', 'children': 'school_age', 
-            'women_of_reproductive_age': 'women_childbearing', 'elderly': 'elderly',
-            'adults': 'adults', 'youth': 'adults', 'under_5': 'under_5',
-            'female': 'total', 'male': 'total'
-        };
-        const targetType = popTypeMap[props.populationType] || 'total';
+        const targetType = POP_TYPE_MAP[props.populationType] || 'total';
         const query = `
             SELECT * FROM '${currentFileUrl}' 
             WHERE admin_level = 'ADM1' AND range = ${rangeVal} AND population_type = '${targetType}';
@@ -348,7 +346,7 @@ const processUpdates = () => {
     emit('data-updated', resultData.value);
 
     // Tab Logic
-    if (activeTab.value === 'barchart') setTimeout(() => renderChart(allData.value), 200);
+    if (activeTab.value === 'barchart') nextTick(() => renderChart(allData.value));
     else if (activeTab.value === 'ranking') fetchRankingData();
 };
 
@@ -358,7 +356,7 @@ watch(() => [props.country, props.category, props.adminLevel, props.populationTy
 watch(() => props.selectedRange, () => { processUpdates(); });
 
 watch(activeTab, (newTab) => {
-    if (newTab === 'barchart') setTimeout(() => renderChart(allData.value), 200);
+    if (newTab === 'barchart') nextTick(() => renderChart(allData.value));
     if (newTab === 'ranking') fetchRankingData();
     if (newTab === 'table' && tableData.value.length === 0) fetchTableData();
 });
