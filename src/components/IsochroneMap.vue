@@ -27,14 +27,13 @@ const emit = defineEmits(['select-country', 'map-move-end']);
 const clearGlobalIsoLayers = () => {
     if (!map) return;
     const style = map.getStyle();
-    if (style && style.layers) {
-        style.layers.forEach(l => {
-            if (l.id.startsWith('global-iso-')) {
-                map?.removeLayer(l.id);
-            }
-        });
-    }
-    Object.keys(map.getStyle().sources || {}).forEach(s => {
+    if (!style) return;
+    (style.layers || []).forEach(l => {
+        if (l.id.startsWith('global-iso-')) {
+            map?.removeLayer(l.id);
+        }
+    });
+    Object.keys(style.sources || {}).forEach(s => {
         if (s.startsWith('global-iso-')) {
             map?.removeSource(s);
         }
@@ -277,10 +276,10 @@ watch(() => props.isGlobalView, (isGlobal) => {
 
       if (e.features && e.features.length > 0) {
           const feature = e.features[0]!;
-          const props = feature.properties;
+          const featureProperties = feature.properties;
           
-          const name = props?.NAME || props?.name || props?.ADMIN || 'Unknown';
-          const iso = props?.ISO_A3 || props?.iso_a3 || props?.ADM0_A3 || props?.adm0_a3 || props?.sov_a3 || 'N/A';
+          const name = featureProperties?.NAME || featureProperties?.name || featureProperties?.ADMIN || 'Unknown';
+          const iso = featureProperties?.ISO_A3 || featureProperties?.iso_a3 || featureProperties?.ADM0_A3 || featureProperties?.adm0_a3 || featureProperties?.sov_a3 || 'N/A';
           
           globalPopup.setLngLat(e.lngLat)
               .setHTML(`
@@ -313,8 +312,8 @@ watch(() => props.isGlobalView, (isGlobal) => {
   map.on('click', 'global-boundaries-fill', (e) => {
       if (e.features && e.features.length > 0) {
           const feature = e.features[0]!;
-          const props = feature.properties;
-          const iso = props?.ISO_A3 || props?.iso_a3 || props?.ADM0_A3 || props?.adm0_a3 || props?.sov_a3;
+          const featureProperties = feature.properties;
+          const iso = featureProperties?.ISO_A3 || featureProperties?.iso_a3 || featureProperties?.ADM0_A3 || featureProperties?.adm0_a3 || featureProperties?.sov_a3;
           
           if (iso && iso !== 'N/A' && iso !== '-99') {
               const bounds = getBbox(feature);
@@ -593,7 +592,12 @@ const updateMapData = () => {
                       return id;
                   }
               } catch (e) {
-                  // silent catch for missing boundaries/files
+                  // Expected for countries/categories with no PMTiles file
+                  // published (e.g. a territory with no hospital data) -
+                  // not an error, falls through to the 'isochrones' guess
+                  // below. console.debug so it's visible with verbose
+                  // logging on but doesn't spam the console by default.
+                  console.debug(`[IsochroneMap] No layer metadata for ${isoLower}/${category}, falling back to 'isochrones'`, e);
               }
               return 'isochrones'; // fallback
           };
@@ -620,6 +624,10 @@ const updateMapData = () => {
                       const layerName = await getLayerName(isoLower, props.category);
                       return { isoLower, sourceId, layerName };
                   } catch (e) {
+                      // getLayerName already swallows its own expected
+                      // failures (missing files) and always resolves - if
+                      // this fires, something else genuinely broke.
+                      console.warn(`[IsochroneMap] Unexpected failure resolving global isochrone layer for ${isoLower}`, e);
                       return null;
                   }
               }));
