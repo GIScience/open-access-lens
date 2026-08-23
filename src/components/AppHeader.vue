@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
+import CountryDropdown from './CountryDropdown.vue';
 
 
-const props = defineProps<{
+defineProps<{
   countries: { label: string; value: string }[];
   categories: { label: string; value: string }[];
   selectedCategory: string;
@@ -16,29 +17,7 @@ const emit = defineEmits<{
   (e: 'open-about'): void;
 }>();
 
-const isDropdownOpen = ref(false);
-const searchQuery = ref('');
 const isCollapsed = ref(false); // New State
-
-const filteredCountries = computed(() => {
-    if (!searchQuery.value) return props.countries;
-    const q = searchQuery.value.toLowerCase();
-    return props.countries.filter(c => c.label.toLowerCase().includes(q));
-});
-
-const toggleDropdown = () => {
-    isDropdownOpen.value = !isDropdownOpen.value;
-    if (isDropdownOpen.value) {
-        setTimeout(() => {
-            document.getElementById('country-search-input')?.focus();
-        }, 50);
-    }
-};
-
-const selectCountry = (value: string) => {
-    emit('select-country', value);
-    isDropdownOpen.value = false;
-};
 
 // Toggle Global Isochrones
 const toggleGlobalIsochrones = (e: Event) => {
@@ -81,41 +60,15 @@ const toggleCollapse = () => {
         <div v-if="!isCollapsed" class="px-6 pb-4 pt-0 flex flex-col md:flex-row gap-4 items-center md:items-end justify-center border-t border-slate-100 dark:border-slate-800/50 mt-1">
              <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto items-end">
                 <!-- Country Search -->
-                <div class="relative w-full md:w-64 text-left">
-                    <label class="block text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Select a Country</label>
-                    <div 
-                        @click="toggleDropdown"
-                        class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 rounded-md px-3 py-2 text-sm cursor-pointer flex justify-between items-center text-slate-700 dark:text-slate-200 shadow-sm"
-                    >
-                        <span class="truncate">Select a Country</span>
-                        <span class="text-slate-500 text-xs">▼</span>
-                    </div>
-
-                    <!-- Dropdown Menu -->
-                    <div v-if="isDropdownOpen" class="absolute top-full left-0 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-xl max-h-[300px] flex flex-col z-50">
-                        <div class="p-2 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 rounded-t-md">
-                            <input 
-                                id="country-search-input"
-                                v-model="searchQuery" 
-                                placeholder="Search..." 
-                                class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-teal-500"
-                            />
-                        </div>
-                        <div class="overflow-y-auto flex-1">
-                            <div 
-                                v-for="c in filteredCountries" 
-                                :key="c.value"
-                                @click="selectCountry(c.value)"
-                                class="px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between text-slate-700 dark:text-slate-200"
-                            >
-                                {{ c.label }}
-                            </div>
-                            <div v-if="filteredCountries.length === 0" class="p-3 text-slate-500 text-sm text-center">
-                                No matches found
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <CountryDropdown
+                    :countries="countries"
+                    label="Select a Country"
+                    display-text="Select a Country"
+                    search-placeholder="Search..."
+                    container-class="w-full md:w-64"
+                    menu-class="w-full max-h-[300px]"
+                    @select="emit('select-country', $event)"
+                />
 
                 <!-- Global Isochrones Toggle -->
                 <div class="flex flex-col items-start">

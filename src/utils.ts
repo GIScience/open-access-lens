@@ -1,7 +1,12 @@
-export const getBbox = (feature: any) => {
+import type { MapGeoJSONFeature } from 'maplibre-gl';
+
+export const getBbox = (feature: MapGeoJSONFeature): [number, number, number, number] | null => {
     let bounds: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
 
-    const coords = feature.geometry.coordinates;
+    const geometry = feature.geometry;
+    // Coordinate arrays are arbitrarily nested (Polygon: rings of points,
+    // MultiPolygon: polygons of rings of points) - recursing until we hit
+    // an actual [x, y] pair is simpler than typing every nesting level.
     const processRing = (ring: any[]) => {
         ring.forEach((coord: any) => {
             if (Array.isArray(coord[0])) { // MultiPolygon or deeper nesting
@@ -15,8 +20,8 @@ export const getBbox = (feature: any) => {
             }
         });
     };
-    if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-        processRing(coords);
+    if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') {
+        processRing(geometry.coordinates);
     }
     return bounds.every(b => isFinite(b)) ? bounds : null; // [minX, minY, maxX, maxY]
 };

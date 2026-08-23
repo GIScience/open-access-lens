@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import IsochroneMap from '../components/IsochroneMap.vue';
 import AppHeader from '../components/AppHeader.vue';
+import CountryDropdown from '../components/CountryDropdown.vue';
 import AboutModal from '../components/AboutModal.vue';
 import yaml from 'js-yaml';
 import { COUNTRIES_URL, RANGE_OPTIONS } from '../config';
@@ -25,10 +26,6 @@ const router = useRouter();
 const countries = ref<{value: string, label: string}[]>([]);
 const isLoadingCountries = ref(true);
 
-// Searchable Dropdown State
-const isDropdownOpen = ref(false);
-const searchQuery = ref('');
-const dropdownRef = ref<HTMLElement | null>(null);
 const isAboutOpen = ref(false);
 
 const selectedCountry = ref(''); // Default to empty (Global View)
@@ -60,12 +57,6 @@ const adminLevels = [
 
 // --- Computed ---
 const ranges = computed(() => RANGE_OPTIONS[selectedCategory.value === 'education' ? 'education' : 'health']);
-
-const filteredCountries = computed(() => {
-  if (!searchQuery.value) return countries.value;
-  const q = searchQuery.value.toLowerCase();
-  return countries.value.filter(c => c.label.toLowerCase().includes(q));
-});
 
 const selectedCountryLabel = computed(() => {
   const c = countries.value.find(c => c.value === selectedCountry.value);
@@ -213,8 +204,6 @@ watch(selectedCountry, (newVal) => {
 const selectCountry = (iso: string) => {
     if (!iso) {
         selectedCountry.value = '';
-        isDropdownOpen.value = false;
-        searchQuery.value = '';
         return;
     }
     // Update data but DO NOT switch mode yet. Wait for map zoom.
@@ -224,8 +213,6 @@ const selectCountry = (iso: string) => {
     // "/COD" would then get corrected to "/cod" by the route watcher, and
     // that second push doubles up browser history for one click.
     selectedCountry.value = iso.toLowerCase();
-    isDropdownOpen.value = false;
-    searchQuery.value = '';
     
     // View mode switch is handled by the watcher on selectedCountry now
 };
@@ -239,19 +226,6 @@ const handleDataUpdate = (data: any[]) => {
     chartData.value = data;
 };
 
-const toggleDropdown = () => {
-  isDropdownOpen.value = !isDropdownOpen.value;
-  if (isDropdownOpen.value) {
-    // Focus input next tick?
-    setTimeout(() => {
-      const input = document.getElementById('country-search-input');
-      if (input) input.focus();
-    }, 50);
-  }
-};
-
-
-
 const selectedDistrict = ref<string | null>(null);
 
 const handleDistrictSelection = (id: string) => {
@@ -262,20 +236,9 @@ const handleDistrictSelection = (id: string) => {
     // Future: Trigger Zoom if we have bounds (Requires Geometry or Tile Query)
 };
 
-const handleClickOutside = (event: MouseEvent) => {
-  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
-    isDropdownOpen.value = false;
-  }
-};
-
 // --- Lifecycle & Watchers ---
 onMounted(() => {
   fetchCountries();
-  document.addEventListener('click', handleClickOutside);
-});
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
 });
 
 // Watch Ranges -> Auto-select
@@ -375,43 +338,16 @@ const year = new Date().getFullYear();
                                 </button>
 
                                 <!-- Custom Searchable Country Dropdown -->
-                                <div class="relative flex-1 min-w-[140px]" ref="dropdownRef">
-                                    <label class="block text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Country</label>
-                                    <div 
-                                        @click="toggleDropdown"
-                                        class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 rounded-md px-3 py-2 text-sm cursor-pointer flex justify-between items-center text-slate-700 dark:text-slate-200 shadow-sm"
-                                    >
-                                        <span class="truncate">{{ selectedCountryLabel }}</span>
-                                        <span class="text-slate-500 text-xs text-right ml-2">▼</span>
-                                    </div>
-
-                                    <!-- Dropdown Menu -->
-                                    <div v-if="isDropdownOpen" class="absolute top-full left-0 mt-1 w-[260px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-xl max-h-[400px] flex flex-col z-50">
-                                        <div class="p-2 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 rounded-t-md">
-                                            <input 
-                                                id="country-search-input"
-                                                v-model="searchQuery" 
-                                                placeholder="Search countries..." 
-                                                class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-teal-500"
-                                            />
-                                        </div>
-                                        <div class="overflow-y-auto flex-1">
-                                            <div 
-                                                v-for="c in filteredCountries" 
-                                                :key="c.value"
-                                                @click="selectCountry(c.value)"
-                                                class="px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between text-slate-700 dark:text-slate-200"
-                                                :class="{'bg-teal-50 dark:bg-slate-700/50 text-teal-600 dark:text-teal-400 font-medium': c.value === selectedCountry}"
-                                            >
-                                                {{ c.label }}
-                                                <span v-if="c.value === selectedCountry">✓</span>
-                                            </div>
-                                            <div v-if="filteredCountries.length === 0" class="p-3 text-slate-500 text-sm text-center">
-                                                No matches found
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <CountryDropdown
+                                    :countries="countries"
+                                    label="Country"
+                                    :display-text="selectedCountryLabel"
+                                    :selected-value="selectedCountry"
+                                    search-placeholder="Search countries..."
+                                    container-class="flex-1 min-w-[140px]"
+                                    menu-class="w-[260px] max-h-[400px]"
+                                    @select="selectCountry"
+                                />
 
                                 <!-- Category -->
                                 <div class="flex flex-col flex-1 min-w-[120px]">
