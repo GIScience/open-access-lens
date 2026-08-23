@@ -604,48 +604,52 @@ const updateMapData = () => {
                   return;
               }
 
-              const promises = props.availableCountries!.map(async (c) => {
-                  if (myUpdateId !== currentUpdateId.value) return;
-
+              // Phase 1: resolve every country's layer name (pure network
+              // I/O, no map mutation) all in parallel. Phase 2 then adds
+              // every source+layer in one synchronous burst once they've
+              // ALL resolved, instead of each country popping onto the map
+              // individually the instant its own fetch finishes - avoids
+              // ~190 separate staggered repaints while loading.
+              const results = await Promise.all(props.availableCountries!.map(async (c) => {
                   const isoLower = c.value.toLowerCase();
                   const sourceId = `global-iso-source-${isoLower}`;
-                  const layerId = `global-iso-layer-${isoLower}`;
-                  
-                  if (map?.getSource(sourceId)) return;
 
-                  const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
+                  if (map?.getSource(sourceId)) return null;
 
                   try {
                       const layerName = await getLayerName(isoLower, props.category);
-                      if (myUpdateId !== currentUpdateId.value) return;
-
-                      map?.addSource(sourceId, {
-                          type: 'vector',
-                          url: `pmtiles://${url}`,
-                          attribution: ''
-                      });
-
-                      // Standard Isochrone Color Steps
-                      const steps = buildIsochroneColorSteps(props.category);
-
-                      map?.addLayer({
-                          id: layerId,
-                          type: 'fill',
-                          source: sourceId,
-                          'source-layer': layerName,
-                          paint: {
-                              'fill-color': steps as any,
-                              'fill-opacity': 0.7
-                          }
-                      }, 'global-boundaries-line'); 
-
+                      return { isoLower, sourceId, layerName };
                   } catch (e) {
-                      // ignore 
+                      return null;
                   }
-              });
-              
-              await Promise.all(promises);
-              if (myUpdateId === currentUpdateId.value) {
+              }));
+
+              if (myUpdateId !== currentUpdateId.value) return;
+
+              const steps = buildIsochroneColorSteps(props.category);
+
+              for (const result of results) {
+                  if (!result || map?.getSource(result.sourceId)) continue;
+                  const { isoLower, sourceId, layerName } = result;
+                  const layerId = `global-iso-layer-${isoLower}`;
+                  const url = `${TILES_BASE_URL}/${isoLower}/${isoLower}_${props.category.toLowerCase()}_isochrones.pmtiles`;
+
+                  map?.addSource(sourceId, {
+                      type: 'vector',
+                      url: `pmtiles://${url}`,
+                      attribution: ''
+                  });
+
+                  map?.addLayer({
+                      id: layerId,
+                      type: 'fill',
+                      source: sourceId,
+                      'source-layer': layerName,
+                      paint: {
+                          'fill-color': steps as any,
+                          'fill-opacity': 0.7
+                      }
+                  }, 'global-boundaries-line');
               }
           })();
 
